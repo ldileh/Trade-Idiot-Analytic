@@ -31,3 +31,6 @@ Thumbs.db
 .env
 .env.*
 !.env.example
+
+# Claude Code — local-only settings (shared skills/ are committed)
+.claude/settings.local.json
