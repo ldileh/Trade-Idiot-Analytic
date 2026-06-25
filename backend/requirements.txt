@@ -1,0 +1,23 @@
+# Web framework
+fastapi==0.115.6
+uvicorn[standard]==0.34.0
+pydantic==2.10.4
+
+# Data
+# 0.2.51 broke against Yahoo's API (empty/JSONDecodeError responses); 1.4.x works.
+yfinance==1.4.1
+pandas==2.2.3
+numpy==1.26.4
+
+# Technical analysis
+# Note: pandas-ta was dropped — its PyPI release (0.3.14b0) was yanked and the
+# upstream GitHub repo (twopirllc/pandas-ta) was deleted. `ta` is a pure-Python
+# alternative compatible with numpy 1.26.x / pandas 2.2.x and needs no numba,
+# which keeps the PyInstaller sidecar light.
+ta==0.11.0
+
+# Backtesting
+backtesting==0.3.3
+
+# Packaging (sidecar)
+pyinstaller==6.11.1
