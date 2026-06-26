@@ -13,11 +13,11 @@ UI untuk menjalankan backtest strategi terhadap data historis lewat `/backtest`,
 menampilkan metrik ringkasan dan kurva ekuitas.
 
 ## Spec / kriteria selesai
-- [ ] `BacktestPanel.tsx`: form pilih strategi (`sma_cross` / `rsi_reversion`) + parameter (fast/slow, rsi_period/lower/upper, cash, commission).
-- [ ] Tombol "Run backtest" memanggil `/backtest` dan menampilkan loading.
-- [ ] Tampilkan metrik dari `stats` (Return %, # Trades, Sharpe, Max Drawdown, Win Rate, dll) dalam bentuk tabel/kartu.
-- [ ] Render equity curve (line chart) dari `equity_curve` (lightweight-charts atau chart kedua).
-- [ ] Validasi error backend ditampilkan rapi (mis. `fast >= slow` → 422 → pesan jelas).
+- [x] `BacktestPanel.tsx`: form pilih strategi (`sma_cross` / `rsi_reversion`) + parameter (fast/slow, rsi_period/lower/upper, cash, commission).
+- [x] Tombol "Run backtest" memanggil `/backtest` dan menampilkan loading.
+- [x] Tampilkan metrik dari `stats` (Return %, # Trades, Sharpe, Max Drawdown, Win Rate, dll) dalam bentuk tabel/kartu.
+- [x] Render equity curve (line chart) dari `equity_curve` (lightweight-charts atau chart kedua).
+- [x] Validasi error backend ditampilkan rapi (mis. `fast >= slow` → 422 → pesan jelas).
 
 ## Catatan teknis
 - Strategi & parameter mengikuti `BacktestRequest` di backend `app/models.py`.
