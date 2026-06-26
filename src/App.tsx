@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { getPrices, postIndicators } from "./api/client";
+import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import IndicatorControls from "./components/IndicatorControls";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
@@ -86,6 +87,7 @@ export default function App() {
       <div style={{ marginTop: "1rem", opacity: loading ? 0.5 : 1 }}>
         <ChartPanel candles={candles} lines={lines} />
       </div>
+      <BacktestPanel ticker={query.ticker} interval={query.interval} range={query.range} />
     </main>
   );
 }

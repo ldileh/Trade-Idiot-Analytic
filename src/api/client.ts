@@ -19,7 +19,16 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!res.ok) {
-    throw new Error(`${init?.method ?? "GET"} ${path} → ${res.status} ${res.statusText}`);
+    // Surface FastAPI's `detail` when present. Custom errors give a string
+    // ("fast period must be smaller than slow"); pydantic validation gives an
+    // array of {msg, loc} — join those into one readable line.
+    const detail = await res.json().then((b) => b?.detail).catch(() => null);
+    const msg = Array.isArray(detail)
+      ? detail.map((d: { msg?: string; loc?: unknown[] }) => `${d.loc?.slice(-1)}: ${d.msg}`).join("; ")
+      : typeof detail === "string"
+        ? detail
+        : `${init?.method ?? "GET"} ${path} → ${res.status} ${res.statusText}`;
+    throw new Error(msg);
   }
   return res.json() as Promise<T>;
 }
