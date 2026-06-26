@@ -2,7 +2,7 @@
 id: 006
 title: Package backend sebagai sidecar (PyInstaller) + build rilis
 branch: task/006-sidecar-packaging
-status: backlog
+status: in-progress
 created: 2026-06-25
 ---
 
