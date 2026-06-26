@@ -2,7 +2,7 @@
 id: 002
 title: Candlestick chart panel + input ticker
 branch: task/002-chart-panel
-status: backlog
+status: done
 created: 2026-06-25
 ---
 
@@ -13,11 +13,11 @@ Menampilkan candlestick chart saham US dari endpoint `/prices`, dengan input
 ticker/interval/range, memakai TradingView lightweight-charts.
 
 ## Spec / kriteria selesai
-- [ ] `TickerInput.tsx`: input ticker + dropdown interval (`1d/1wk/1mo/1h/...`) & range (`1mo/.../max`).
-- [ ] `ChartPanel.tsx`: render candlestick series dari data `/prices` via lightweight-charts.
-- [ ] Loading & error state (mis. ticker tidak ditemukan → tampilkan pesan dari 404 backend).
-- [ ] Chart responsif terhadap resize window.
-- [ ] Data diambil lewat `src/api/client.ts` (task 001), bukan fetch langsung tersebar.
+- [x] `TickerInput.tsx`: input ticker + dropdown interval (`1d/1wk/1mo/1h/...`) & range (`1mo/.../max`).
+- [x] `ChartPanel.tsx`: render candlestick series dari data `/prices` via lightweight-charts.
+- [x] Loading & error state (mis. ticker tidak ditemukan → tampilkan pesan dari 404 backend).
+- [x] Chart responsif terhadap resize window.
+- [x] Data diambil lewat `src/api/client.ts` (task 001), bukan fetch langsung tersebar.
 
 ## Catatan teknis
 - `time` dari backend = epoch detik → lightweight-charts pakai UTCTimestamp.
