@@ -4,19 +4,43 @@ import {
   type CandlestickData,
   type IChartApi,
   type ISeriesApi,
+  type LineData,
   type UTCTimestamp,
 } from "lightweight-charts";
-import type { Candle } from "../types";
+import type { Candle, IndicatorSeries } from "../types";
+import { colorFor } from "../indicators";
 
-// Renders a candlestick chart from /prices data. The chart instance is created
-// once and only its data is updated, so re-renders (loading, new candles) don't
-// thrash the DOM. Backend `time` is epoch seconds → UTCTimestamp directly.
-export default function ChartPanel({ candles }: { candles: Candle[] }) {
+const OSC_SCALE = "osc"; // separate price scale id for oscillator pane
+
+// A named indicator line plus whether it belongs on the price pane (overlay)
+// or the bottom oscillator pane.
+export interface SeriesLine extends IndicatorSeries {
+  overlay: boolean;
+}
+
+// Drop warm-up nulls so the line doesn't draw a gap to zero. time+value align 1:1.
+function toLineData(s: IndicatorSeries): LineData[] {
+  const out: LineData[] = [];
+  for (let i = 0; i < s.time.length; i++) {
+    const v = s.value[i];
+    if (v != null) out.push({ time: s.time[i] as UTCTimestamp, value: v });
+  }
+  return out;
+}
+
+export default function ChartPanel({
+  candles,
+  lines,
+}: {
+  candles: Candle[];
+  lines: SeriesLine[];
+}) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const seriesRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   const chartRef = useRef<IChartApi | null>(null);
+  const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  // Active line series keyed by indicator series name, so we add/remove only what changed.
+  const lineRefs = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
 
-  // Create the chart once; tear it down on unmount.
   useEffect(() => {
     const container = containerRef.current;
     if (!container) return;
@@ -27,18 +51,18 @@ export default function ChartPanel({ candles }: { candles: Candle[] }) {
       timeScale: { timeVisible: true },
     });
     chartRef.current = chart;
-    seriesRef.current = chart.addCandlestickSeries();
+    candleRef.current = chart.addCandlestickSeries();
+    // Push the price pane up so oscillators have room at the bottom.
+    chart.priceScale("right").applyOptions({ scaleMargins: { top: 0.05, bottom: 0.3 } });
     return () => {
       chart.remove();
       chartRef.current = null;
-      seriesRef.current = null;
+      candleRef.current = null;
+      lineRefs.current.clear();
     };
   }, []);
 
-  // Push new data whenever candles change.
   useEffect(() => {
-    const series = seriesRef.current;
-    if (!series) return;
     const data: CandlestickData[] = candles.map((c) => ({
       time: c.time as UTCTimestamp,
       open: c.open,
@@ -46,9 +70,45 @@ export default function ChartPanel({ candles }: { candles: Candle[] }) {
       low: c.low,
       close: c.close,
     }));
-    series.setData(data);
+    candleRef.current?.setData(data);
     chartRef.current?.timeScale().fitContent();
   }, [candles]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "480px" }} />;
+  // Reconcile line series with the requested `lines`: create new, update existing,
+  // drop removed. This is what lets indicators add/remove without a full reload.
+  useEffect(() => {
+    const chart = chartRef.current;
+    if (!chart) return;
+    const refs = lineRefs.current;
+    const wanted = new Set(lines.map((l) => l.name));
+
+    for (const [name, series] of refs) {
+      if (!wanted.has(name)) {
+        chart.removeSeries(series);
+        refs.delete(name);
+      }
+    }
+
+    for (const line of lines) {
+      let series = refs.get(line.name);
+      if (!series) {
+        series = chart.addLineSeries({
+          color: colorFor(line.name),
+          lineWidth: 2,
+          priceScaleId: line.overlay ? "right" : OSC_SCALE,
+          priceLineVisible: false,
+          lastValueVisible: false,
+        });
+        refs.set(line.name, series);
+      }
+      series.setData(toLineData(line));
+    }
+
+    // Confine oscillator lines to the bottom strip below the price pane.
+    if (lines.some((l) => !l.overlay)) {
+      chart.priceScale(OSC_SCALE).applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+    }
+  }, [lines]);
+
+  return <div ref={containerRef} style={{ width: "100%", height: "520px" }} />;
 }
