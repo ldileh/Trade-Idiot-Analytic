@@ -2,7 +2,7 @@
 id: 001
 title: Scaffold frontend React + TypeScript + Vite
 branch: task/001-frontend-scaffold
-status: backlog
+status: in-progress
 created: 2026-06-25
 ---
 
