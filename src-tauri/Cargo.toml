@@ -1,0 +1,20 @@
+[package]
+name = "trade-idiot-analytic"
+version = "0.1.0"
+description = "Trade-Idiot-Analytic desktop shell"
+edition = "2021"
+rust-version = "1.77"
+
+[lib]
+# Tauri v2 keeps app logic in a lib so desktop + mobile share it.
+name = "trade_idiot_analytic_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-shell = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
