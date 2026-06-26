@@ -10,11 +10,28 @@ import type {
   Range,
 } from "../types";
 
+// Browser-dev default; inside Tauri the real port comes from the shell (below).
 export const BACKEND_BASE =
   import.meta.env.VITE_BACKEND_BASE ?? "http://127.0.0.1:8756";
 
+// Inside the Tauri shell the backend listens on a free port chosen at startup;
+// ask the Rust side for it once and cache. Outside Tauri, use BACKEND_BASE.
+let basePromise: Promise<string> | null = null;
+function backendBase(): Promise<string> {
+  if (!basePromise) {
+    basePromise = (async () => {
+      if (!("__TAURI_INTERNALS__" in window)) return BACKEND_BASE;
+      const { invoke } = await import("@tauri-apps/api/core");
+      const port = await invoke<number>("backend_port");
+      return `http://127.0.0.1:${port}`;
+    })();
+  }
+  return basePromise;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(`${BACKEND_BASE}${path}`, {
+  const base = await backendBase();
+  const res = await fetch(`${base}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...init,
   });
