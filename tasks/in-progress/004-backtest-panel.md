@@ -2,7 +2,7 @@
 id: 004
 title: Panel backtesting (form + hasil + equity curve)
 branch: task/004-backtest-panel
-status: backlog
+status: in-progress
 created: 2026-06-25
 ---
 
