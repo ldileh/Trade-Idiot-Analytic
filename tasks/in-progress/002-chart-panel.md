@@ -2,7 +2,7 @@
 id: 002
 title: Candlestick chart panel + input ticker
 branch: task/002-chart-panel
-status: backlog
+status: in-progress
 created: 2026-06-25
 ---
 
