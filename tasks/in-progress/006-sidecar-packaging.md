@@ -13,17 +13,19 @@ Mem-bundle backend FastAPI menjadi satu executable mandiri via PyInstaller, taru
 sebagai sidecar Tauri, dan menghasilkan installer/app rilis lewat `tauri build`.
 
 ## Spec / kriteria selesai
-- [ ] Spec PyInstaller (one-file/one-dir) untuk `backend/main.py` → exe yang jalan tanpa Python terpasang.
-- [ ] Pastikan hidden imports/data files yang dibutuhkan (uvicorn, yfinance, ta, backtesting, pandas) ter-include.
-- [ ] Exe di-rename sesuai konvensi sidecar Tauri (`*-<target-triple>.exe`) dan ditaruh di `src-tauri/bin/`.
-- [ ] `tauri.conf.json` `externalBin` menunjuk sidecar yang benar.
-- [ ] `tauri build` menghasilkan app rilis yang menjalankan exe sidecar (bukan venv dev).
-- [ ] App rilis: chart + indikator + backtest berfungsi dengan data live.
+- [x] Spec PyInstaller (`backend/sidecar.spec`, one-file) untuk `backend/main.py` → exe (75 MB) jalan tanpa Python terpasang.
+- [x] Hidden imports/data files (uvicorn, yfinance, ta, backtesting, pandas) ter-include via `collect_all` + impl uvicorn eksplisit.
+- [x] Exe di-rename `backend-x86_64-pc-windows-msvc.exe` (konvensi sidecar Tauri) ditaruh di `src-tauri/bin/` (gitignored). Helper: `backend/build_sidecar.py`.
+- [x] `tauri.conf.json` `externalBin: ["binaries/backend"]` → resolve ke nama bertriple di atas.
+- [ ] `tauri build` menghasilkan app rilis — **TERTUNDA**: butuh MSVC C++ Build Tools (sama blocker task 005).
+- [ ] App rilis end-to-end — **TERTUNDA**: menunggu `tauri build`.
 
 ## Catatan teknis
-- Bergantung task 005 (Tauri shell) dan butuh Rust/MSVC (lihat AGENTS.md §7).
+- **Setengah jalan**: bagian PyInstaller (kriteria 1-4) SELESAI & terverifikasi penuh tanpa MSVC.
+  Bagian `tauri build` (5-6) tertunda MSVC, sama seperti task 005.
 - `ta` & `backtesting` murni Python → relatif ramah PyInstaller (alasan menghindari numba).
-- Verifikasi exe sidecar bind `127.0.0.1` saja.
+- **Verifikasi exe standalone (port 8799)**: `/health` OK, /prices 124 candles, /indicators EMA_20,
+  /backtest Return -17.67%/6 trades/251 pts. Bind **127.0.0.1 saja** (dicek via Get-NetTCPConnection). ✅
 
 ## Verifikasi
 - Build exe sidecar, jalankan langsung → `/health` OK di port yang diberikan.
