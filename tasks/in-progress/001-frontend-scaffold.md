@@ -13,12 +13,12 @@ Menyiapkan kerangka frontend (React + TypeScript + Vite) sebagai dasar UI deskto
 sehingga task UI berikutnya bisa langsung membangun di atasnya. Belum perlu Tauri.
 
 ## Spec / kriteria selesai
-- [ ] `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html` ada di root.
-- [ ] Struktur `src/` sesuai AGENTS.md §3: `main.tsx`, `App.tsx`, `api/`, `components/`, `types.ts`.
-- [ ] Dependency inti terpasang: `react`, `react-dom`, `typescript`, `vite`, `@vitejs/plugin-react`, `lightweight-charts`.
-- [ ] `npm run dev` (atau pnpm) jalan tanpa error dan menampilkan halaman kosong/placeholder.
-- [ ] `src/api/client.ts`: wrapper `fetch` ke backend (`BACKEND_BASE` default `http://127.0.0.1:8756`).
-- [ ] `src/types.ts`: tipe TS yang mirror schema backend (Candle, IndicatorSeries, BacktestResponse, dll).
+- [x] `package.json`, `vite.config.ts`, `tsconfig.json`, `index.html` ada di root.
+- [x] Struktur `src/` sesuai AGENTS.md §3: `main.tsx`, `App.tsx`, `api/`, `components/`, `types.ts`.
+- [x] Dependency inti terpasang: `react`, `react-dom`, `typescript`, `vite`, `@vitejs/plugin-react`, `lightweight-charts`.
+- [x] `npm run dev` (atau pnpm) jalan tanpa error dan menampilkan halaman kosong/placeholder.
+- [x] `src/api/client.ts`: wrapper `fetch` ke backend (`BACKEND_BASE` default `http://127.0.0.1:8756`).
+- [x] `src/types.ts`: tipe TS yang mirror schema backend (Candle, IndicatorSeries, BacktestResponse, dll).
 
 ## Catatan teknis
 - Node v25 / pnpm 11 sudah ada (lihat AGENTS.md). Pakai pnpm jika memungkinkan.
