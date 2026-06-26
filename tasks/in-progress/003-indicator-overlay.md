@@ -2,7 +2,7 @@
 id: 003
 title: Overlay indikator teknikal pada chart
 branch: task/003-indicator-overlay
-status: backlog
+status: in-progress
 created: 2026-06-25
 ---
 
