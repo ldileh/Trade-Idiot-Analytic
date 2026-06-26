@@ -2,7 +2,7 @@
 id: 005
 title: Tauri v2 shell + spawn backend sidecar
 branch: task/005-tauri-shell
-status: backlog
+status: in-progress
 created: 2026-06-25
 ---
 
