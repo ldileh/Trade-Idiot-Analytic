@@ -2,7 +2,7 @@
 id: 003
 title: Overlay indikator teknikal pada chart
 branch: task/003-indicator-overlay
-status: backlog
+status: done
 created: 2026-06-25
 ---
 
@@ -13,11 +13,11 @@ Memungkinkan user memilih indikator (SMA/EMA/RSI/MACD/Bollinger/ATR) dan
 menampilkannya di chart, memakai endpoint `/indicators`.
 
 ## Spec / kriteria selesai
-- [ ] `IndicatorControls.tsx`: UI memilih indikator + parameter `period`.
-- [ ] Overlay pada panel harga: SMA/EMA/Bollinger digambar sebagai line series di chart utama.
-- [ ] Indikator oscillator (RSI/MACD/ATR) tampil di pane/area terpisah di bawah chart harga.
-- [ ] Nilai `null` (warm-up) di-skip, garis tidak putus aneh.
-- [ ] Bisa menambah & menghapus indikator tanpa reload seluruh halaman.
+- [x] `IndicatorControls.tsx`: UI memilih indikator + parameter `period`.
+- [x] Overlay pada panel harga: SMA/EMA/Bollinger digambar sebagai line series di chart utama.
+- [x] Indikator oscillator (RSI/MACD/ATR) tampil di pane/area terpisah di bawah chart harga.
+- [x] Nilai `null` (warm-up) di-skip, garis tidak putus aneh.
+- [x] Bisa menambah & menghapus indikator tanpa reload seluruh halaman.
 
 ## Catatan teknis
 - `/indicators` mengembalikan beberapa series per indikator (mis. MACD → macd/signal/hist, bbands → upper/mid/lower).
