@@ -62,6 +62,19 @@ pub fn run() {
             // process is left behind.
             if let tauri::WindowEvent::Destroyed = event {
                 if let Some(child) = window.state::<Backend>().child.lock().unwrap().take() {
+                    // The one-file PyInstaller sidecar is a bootstrap process that
+                    // re-spawns the real uvicorn server as its own child. child.kill()
+                    // only terminates the bootstrap, orphaning that grandchild (which
+                    // keeps holding the port). taskkill /T tears down the whole tree.
+                    #[cfg(windows)]
+                    {
+                        use std::os::windows::process::CommandExt;
+                        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+                        let _ = std::process::Command::new("taskkill")
+                            .args(["/F", "/T", "/PID", &child.pid().to_string()])
+                            .creation_flags(CREATE_NO_WINDOW)
+                            .status();
+                    }
                     let _ = child.kill();
                 }
             }
