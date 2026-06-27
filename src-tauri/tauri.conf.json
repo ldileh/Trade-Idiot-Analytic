@@ -26,6 +26,6 @@
     "active": true,
     "targets": "all",
     "icon": ["icons/icon.ico"],
-    "externalBin": ["binaries/backend"]
+    "externalBin": ["bin/backend"]
   }
 }

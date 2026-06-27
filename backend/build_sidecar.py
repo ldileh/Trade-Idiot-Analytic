@@ -2,7 +2,7 @@
 
 Runs PyInstaller against sidecar.spec, then copies the result into
 src-tauri/bin/ renamed to backend-<target-triple>.exe — the name Tauri's
-`externalBin: ["binaries/backend"]` resolves to on this host.
+`externalBin: ["bin/backend"]` resolves to on this host.
 
 Usage (from repo root, with the 3.12 venv):
     backend/.venv/Scripts/python backend/build_sidecar.py
