@@ -64,9 +64,9 @@ Port dilewatkan via env `BACKEND_PORT` (default `8756`), host via `BACKEND_HOST`
 Trade-Idiot-Analytic/
 ├── AGENTS.md                    # file ini
 ├── .gitignore
-├── package.json                 # frontend + script tauri          [BELUM ADA]
-├── vite.config.ts / tsconfig.json / index.html                    [BELUM ADA]
-├── src/                         # FRONTEND React+TS                [BELUM ADA]
+├── package.json                 # frontend + script tauri          [SELESAI ✅]
+├── vite.config.ts / tsconfig.json / index.html                    [SELESAI ✅]
+├── src/                         # FRONTEND React+TS                [SELESAI ✅]
 │   ├── main.tsx / App.tsx
 │   ├── api/client.ts            # wrapper fetch ke FastAPI sidecar
 │   ├── components/
@@ -75,8 +75,9 @@ Trade-Idiot-Analytic/
 │   │   ├── TickerInput.tsx
 │   │   └── BacktestPanel.tsx
 │   └── types.ts
-├── src-tauri/                   # SHELL TAURI (Rust)               [BELUM ADA]
+├── src-tauri/                   # SHELL TAURI (Rust)               [SELESAI ✅]
 │   ├── Cargo.toml / tauri.conf.json / build.rs
+│   ├── icons/                   # icon set (icon.ico dll.)
 │   ├── bin/                     # output PyInstaller (gitignored)
 │   └── src/{main.rs, lib.rs}    # spawn sidecar, cari port
 └── backend/                     # BACKEND PYTHON                   [SELESAI ✅]
@@ -116,7 +117,24 @@ backend/.venv/Scripts/python backend/main.py                              # jala
 
 Selalu pakai interpreter `backend/.venv/Scripts/python.exe`, **jangan** python sistem.
 
-### Frontend & Tauri — belum ada (lihat §7).
+### Frontend (dev di browser)
+
+```bash
+pnpm install
+pnpm dev            # Vite di http://localhost:1420 (fallback ke backend 127.0.0.1:8756)
+```
+
+### Aplikasi desktop (Tauri — butuh Rust + MSVC)
+
+```bash
+backend/.venv/Scripts/python backend/build_sidecar.py   # build sidecar exe ke src-tauri/bin/
+pnpm tauri dev                                           # dev shell (spawn sidecar)
+pnpm tauri build                                         # installer MSI + NSIS
+```
+
+Build harus dijalankan dengan environment MSVC ter-load (panggil `vcvars64.bat` dulu, atau
+pakai "x64 Native Tools Command Prompt") agar cargo me-link via linker MSVC, bukan `link.exe`
+milik Git. Lihat [README.md](README.md) untuk detail.
 
 ---
 
@@ -137,18 +155,21 @@ Selalu pakai interpreter `backend/.venv/Scripts/python.exe`, **jangan** python s
 
 | Bagian | Status |
 |--------|--------|
-| Backend FastAPI (prices/indicators/backtest) | ✅ Selesai, terverifikasi end-to-end, sudah di-commit. |
-| Frontend React + lightweight-charts | ⬜ Belum dimulai. Bisa langsung jalan via Vite tanpa Rust. |
-| Tauri shell (`src-tauri/`) | ⬜ Belum. **Terblokir**: Rust & MSVC build tools belum terpasang. |
-| PyInstaller sidecar packaging | ⬜ Belum. |
+| Backend FastAPI (prices/indicators/backtest) | ✅ Selesai, terverifikasi end-to-end. |
+| Frontend React + lightweight-charts | ✅ Selesai (task 001–004): chart, overlay indikator, panel backtest. |
+| Tauri shell (`src-tauri/`) | ✅ Selesai (task 005): spawn sidecar, cari port bebas, kill process-tree saat close. |
+| PyInstaller sidecar packaging + build rilis | ✅ Selesai (task 006): sidecar exe + `tauri build` → MSI & NSIS. |
 
-**Blocker Tauri (keputusan user tertunda):** Rust belum terpasang dan **MSVC C++ build
-tools** belum ada (wajib untuk `cargo build` Tauri di Windows). Pilihan: toolchain
-**MSVC** (default, ~2-4 GB, installer GUI) vs **GNU** (tanpa MSVC, tapi Tauri resmi
-rekomendasi MSVC). Backend & frontend-dev **tidak** butuh ini — kerjakan dulu yang bisa.
+**MVP desktop end-to-end sudah berfungsi & terverifikasi** (dev maupun rilis). Toolchain
+yang dibutuhkan untuk build sudah terpasang di mesin dev: **Rust** (stable-msvc, di
+`~/.cargo/bin`), **MSVC C++ Build Tools** (VS 2019), dan **Python 3.12**.
 
-Urutan kerja yang disarankan: **frontend dulu** (tidak butuh Rust, langsung verifiable di
-browser) → finalkan keputusan Rust/MSVC → Tauri shell → packaging sidecar.
+Catatan saat build: panggil `vcvars64.bat` sebelum `pnpm tauri build/dev` agar linker MSVC
+yang dipakai. Sidecar exe (gitignored) harus di-rebuild via `backend/build_sidecar.py` pada
+checkout baru. `externalBin` di `tauri.conf.json` me-resolve ke `bin/backend`.
+
+Ide pengembangan lanjutan (opsional): caching/persistence, lebih banyak strategi backtest,
+signing installer, auto-update.
 
 ---
 
@@ -171,8 +192,8 @@ browser) → finalkan keputusan Rust/MSVC → Tauri shell → packaging sidecar.
 
 ## 9. Rekomendasi skill (Claude Code) untuk fase saat ini
 
-Skill = slash-command yang dipanggil user. Untuk tahap project sekarang (backend selesai,
-frontend/Tauri berikutnya), yang paling relevan:
+Skill = slash-command yang dipanggil user. Untuk tahap project sekarang (MVP desktop
+end-to-end selesai; fase berikutnya pemeliharaan & penyempurnaan), yang paling relevan:
 
 | Skill | Kapan dipakai sekarang |
 |-------|------------------------|
