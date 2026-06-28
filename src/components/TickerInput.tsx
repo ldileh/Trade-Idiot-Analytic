@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { Interval, Range } from "../types";
 import { ALLOWED_RANGES, INTERVAL_LABEL, INTERVAL_LOOKBACK_NOTE, INTERVAL_ORDER, RANGE_LABEL } from "../help";
-import { POPULAR_SYMS, STOCKS } from "../stocks";
+import type { Market } from "../stocks";
+import { POPULAR_SYMS_BY_MARKET, STOCKS_BY_MARKET } from "../stocks";
 import { InfoTip } from "./ui";
 
 export interface TickerQuery {
@@ -32,16 +33,20 @@ export default function TickerInput({
   const [interval, setIntervalState] = useState<Interval>(value.interval);
   const [range, setRange] = useState<Range>(value.range);
   const [open, setOpen] = useState(false);
+  const [market, setMarket] = useState<Market>("us");
   const boxRef = useRef<HTMLDivElement>(null);
+
+  const quickSyms = POPULAR_SYMS_BY_MARKET[market];
 
   const allowedRanges = ALLOWED_RANGES[interval];
 
-  // Filter the curated list by symbol or company name as the user types.
+  // Filter the selected market's list by symbol or company name as the user types.
   const matches = useMemo(() => {
+    const list = STOCKS_BY_MARKET[market];
     const q = ticker.trim().toLowerCase();
-    if (!q) return STOCKS;
-    return STOCKS.filter((s) => s.sym.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
-  }, [ticker]);
+    if (!q) return list;
+    return list.filter((s) => s.sym.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  }, [ticker, market]);
 
   // Close the search dropdown when clicking outside it.
   useEffect(() => {
@@ -78,11 +83,31 @@ export default function TickerInput({
 
   return (
     <div>
+      <div className="chips" style={{ marginBottom: 10 }}>
+        <span className="muted" style={{ fontSize: 13, fontWeight: 600, alignSelf: "center" }}>
+          Pasar:
+        </span>
+        <button
+          type="button"
+          className={`chip${market === "us" ? " active" : ""}`}
+          onClick={() => setMarket("us")}
+        >
+          🇺🇸 Amerika (US)
+        </button>
+        <button
+          type="button"
+          className={`chip${market === "id" ? " active" : ""}`}
+          onClick={() => setMarket("id")}
+        >
+          🇮🇩 Indonesia
+        </button>
+      </div>
+
       <div className="chips" style={{ marginBottom: 12 }}>
         <span className="muted" style={{ fontSize: 13, fontWeight: 600, alignSelf: "center" }}>
           Coba cepat:
         </span>
-        {POPULAR_SYMS.map((sym) => (
+        {quickSyms.map((sym) => (
           <button
             key={sym}
             type="button"
@@ -109,6 +134,7 @@ export default function TickerInput({
           </span>
           <div className="combo" ref={boxRef}>
             <input
+              type="text"
               value={ticker}
               onChange={(e) => {
                 setTicker(e.target.value);
@@ -118,7 +144,7 @@ export default function TickerInput({
               placeholder="ketik nama atau kode, mis. Apple / AAPL"
               aria-label="Cari saham"
               autoComplete="off"
-              style={{ textTransform: "none" }}
+              style={{ textTransform: "uppercase" }}
             />
             {open && matches.length > 0 && (
               <ul className="combo-list" role="listbox">

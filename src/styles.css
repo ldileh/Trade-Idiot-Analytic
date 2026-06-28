@@ -54,7 +54,11 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 /* Two columns: stock-picker sidebar (left) + big chart (right). */
 .layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
 .layout .card { margin-bottom: 0; }
-.side { position: sticky; top: 20px; }
+.side {
+  position: sticky; top: 20px;
+  display: flex; flex-direction: column; gap: 18px;
+  max-height: calc(100vh - 40px); overflow-y: auto;
+}
 @media (max-width: 900px) {
   .layout { grid-template-columns: 1fr; }
   .side { position: static; }
