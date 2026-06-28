@@ -120,5 +120,7 @@ export default function ChartPanel({
     }
   }, [lines]);
 
-  return <div ref={containerRef} style={{ width: "100%", height: "520px" }} />;
+  // Fill most of the viewport height so the chart reads clearly; clamped so it
+  // never gets cramped on short screens or absurdly tall on big monitors.
+  return <div ref={containerRef} style={{ width: "100%", height: "clamp(440px, calc(100vh - 230px), 860px)" }} />;
 }
