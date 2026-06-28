@@ -2,7 +2,7 @@
 id: 007
 title: Rombak UI jadi menarik, interaktif & ramah pemula
 branch: task/007-ui-ramah-pemula
-status: in-progress
+status: done
 created: 2026-06-28
 ---
 
