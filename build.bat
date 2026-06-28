@@ -29,6 +29,14 @@ rem --- Make sure Rust is on PATH ----------------------------------------------
 set "PATH=%USERPROFILE%\.cargo\bin;%PATH%"
 where cargo >nul 2>nul || (echo [ERROR] cargo/Rust tidak ditemukan di PATH. Install Rust ^(rustup, stable-msvc^). & goto :fail)
 
+rem --- Kill leftover app/sidecar so they don't lock target\release files -------
+rem A still-running window (trade-idiot-analytic.exe) or an orphan sidecar
+rem (backend.exe) keeps target\release\*.exe open, making tauri-build fail with
+rem "Access is denied" (OS error 5). Kill them first; ignore "not found".
+echo Menutup app/sidecar yang masih berjalan (kalau ada)...
+taskkill /F /IM trade-idiot-analytic.exe /T >nul 2>nul
+taskkill /F /IM backend.exe /T >nul 2>nul
+
 rem --- 2. Build the backend sidecar exe ----------------------------------------
 set "VENVPY=%~dp0backend\.venv\Scripts\python.exe"
 if not exist "%VENVPY%" (
