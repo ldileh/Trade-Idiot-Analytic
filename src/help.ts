@@ -64,33 +64,78 @@ export const INDICATOR_INFO: Record<IndicatorKind, IndicatorInfo> = {
 
 // Human label for each candle interval ("1 batang = ...").
 export const INTERVAL_LABEL: Record<Interval, string> = {
-  "1m": "1 menit", "5m": "5 menit", "15m": "15 menit", "30m": "30 menit",
-  "1h": "1 jam", "1d": "1 hari", "1wk": "1 minggu", "1mo": "1 bulan",
+  "1d": "1 hari", "1wk": "1 minggu", "1mo": "1 bulan",
+  "1h": "1 jam", "30m": "30 menit", "15m": "15 menit", "5m": "5 menit", "1m": "1 menit",
 };
+
+// Order shown in the interval dropdown: easy-to-read daily first, intraday last.
+export const INTERVAL_ORDER: Interval[] = ["1d", "1wk", "1mo", "1h", "30m", "15m", "5m", "1m"];
 
 // Human label for each look-back range.
 export const RANGE_LABEL: Record<Range, string> = {
+  "1d": "1 hari terakhir", "5d": "5 hari terakhir",
   "1mo": "1 bulan terakhir", "3mo": "3 bulan terakhir", "6mo": "6 bulan terakhir",
   "1y": "1 tahun terakhir", "2y": "2 tahun terakhir", "5y": "5 tahun terakhir",
   "10y": "10 tahun terakhir", "ytd": "sejak awal tahun ini", "max": "sejak awal data",
 };
 
+// Yahoo only keeps a short history for small (intraday) candles: 1-minute bars go
+// back ~7 days, other minute bars ~60 days, hourly ~2 years, daily+ unlimited.
+// We list only the look-back ranges that actually work for each interval so the
+// user can't pick a combination that returns an error (e.g. 15m + 1 tahun).
+export const ALLOWED_RANGES: Record<Interval, Range[]> = {
+  "1m": ["1d", "5d"],
+  "5m": ["1d", "5d", "1mo"],
+  "15m": ["1d", "5d", "1mo"],
+  "30m": ["1d", "5d", "1mo"],
+  "1h": ["5d", "1mo", "3mo", "6mo", "1y", "2y"],
+  "1d": ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"],
+  "1wk": ["6mo", "1y", "2y", "5y", "10y", "ytd", "max"],
+  "1mo": ["1y", "2y", "5y", "10y", "max"],
+};
+
+// One-line hint about how far back each interval can look, shown under the range.
+export const INTERVAL_LOOKBACK_NOTE: Record<Interval, string> = {
+  "1m": "Lilin 1 menit: hanya bisa lihat sampai ±7 hari ke belakang.",
+  "5m": "Lilin menit: hanya bisa lihat sampai ±60 hari ke belakang.",
+  "15m": "Lilin menit: hanya bisa lihat sampai ±60 hari ke belakang.",
+  "30m": "Lilin menit: hanya bisa lihat sampai ±60 hari ke belakang.",
+  "1h": "Lilin 1 jam: bisa lihat sampai ±2 tahun ke belakang.",
+  "1d": "Lilin harian: bisa lihat sejarah panjang.",
+  "1wk": "Lilin mingguan: cocok untuk melihat tren bertahun-tahun.",
+  "1mo": "Lilin bulanan: cocok untuk gambaran jangka sangat panjang.",
+};
+
 export interface StrategyInfo {
   label: string;
   emoji: string;
-  desc: string;
+  desc: string; // one-line gist on the card
+  how: string[]; // plain bullet points: what the numbers mean & the rule
 }
 
 export const STRATEGY_INFO: Record<Strategy, StrategyInfo> = {
   sma_cross: {
     label: "Dua Garis Bersilang",
     emoji: "✂️",
-    desc: "Beli saat garis cepat memotong garis lambat ke atas, jual saat memotong ke bawah. Ide klasik 'ikut arah tren'.",
+    desc: "Ikut arah tren: beli saat tren mulai naik, jual saat mulai turun.",
+    how: [
+      "Patokannya harga penutupan harian, diubah jadi dua garis rata-rata.",
+      "Garis cepat = rata-rata sedikit hari (mis. 10 hari) → lincah, cepat ikut harga.",
+      "Garis lambat = rata-rata lebih banyak hari (mis. 30 hari) → kalem, jadi pembanding.",
+      "BELI saat garis cepat memotong garis lambat dari bawah ke atas (tanda tren naik mulai).",
+      "JUAL saat garis cepat memotong ke bawah (tanda tren naik habis).",
+    ],
   },
   rsi_reversion: {
     label: "Beli Murah, Jual Mahal",
     emoji: "🔄",
-    desc: "Beli saat meteran RSI bilang 'kemurahan', jual saat bilang 'kemahalan'. Ide 'harga balik ke rata-rata'.",
+    desc: "Tebak harga akan balik ke rata-rata: beli saat kemurahan, jual saat kemahalan.",
+    how: [
+      "Patokannya meteran RSI, yaitu angka 0–100 yang mengukur apakah harga sudah naik/turun terlalu banyak akhir-akhir ini.",
+      "Batas kemurahan & kemahalan itu angka pada meteran RSI (0–100), BUKAN harga rupiah/dolar.",
+      "BELI saat RSI turun di bawah 'batas kemurahan' (mis. 30) → dianggap sudah jatuh terlalu dalam.",
+      "JUAL saat RSI naik di atas 'batas kemahalan' (mis. 70) → dianggap sudah naik terlalu tinggi.",
+    ],
   },
 };
 

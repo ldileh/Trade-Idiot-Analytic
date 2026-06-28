@@ -5,7 +5,8 @@ import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import IndicatorControls from "./components/IndicatorControls";
 import PriceSummary from "./components/PriceSummary";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
-import { Card, SectionHead } from "./components/ui";
+import { Card, Modal } from "./components/ui";
+import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
 import type { Candle, IndicatorSpec } from "./types";
 
@@ -18,6 +19,8 @@ export default function App() {
   const [lines, setLines] = useState<SeriesLine[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showIndicators, setShowIndicators] = useState(false);
+  const [showBacktest, setShowBacktest] = useState(false);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
@@ -88,55 +91,78 @@ export default function App() {
         </div>
       </header>
 
-      {/* Langkah 1 — pilih saham */}
+      {/* Pilih saham — form di atas grafik */}
       <Card>
-        <SectionHead
-          step={1}
-          title="Pilih saham yang mau dilihat"
-          subtitle="Ketik kode saham (atau klik salah satu tombol cepat), lalu atur jangka waktunya."
-        />
         <TickerInput value={query} loading={loading} onSubmit={setQuery} />
-        {loading && <div className="loading-bar" style={{ marginTop: 14 }} />}
+        {loading && <div className="loading-bar" style={{ marginTop: 12 }} />}
         {error && <div className="alert" role="alert">{error}</div>}
         {hasData && (
-          <div style={{ marginTop: 16 }}>
+          <div style={{ marginTop: 14 }}>
             <PriceSummary ticker={query.ticker} candles={candles} />
           </div>
         )}
       </Card>
 
-      {/* Langkah 2 — indikator + chart */}
+      {/* Grafik utama + alat di pinggir */}
       <Card>
-        <SectionHead
-          step={2}
-          title="Tambah alat bantu (indikator)"
-          subtitle="Indikator adalah garis bantu di atas grafik untuk membaca arah harga. Klik kartu untuk menyalakan/mematikan — tidak perlu paham semuanya."
-        />
-        <IndicatorControls active={specs} onAdd={addSpec} onRemove={removeSpec} />
-
-        <div className="legend" style={{ marginTop: 18 }}>
-          <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b> di periode itu</span>
-          <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
-          <span className="dot muted">Tarik/geser grafik untuk menjelajah, scroll untuk zoom.</span>
+        <div className="toolbar">
+          <div className="toolbar-left">
+            <span className="legend">
+              <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
+              <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
+            </span>
+            {specs.length > 0 && (
+              <span className="chips">
+                {specs.map((s) => (
+                  <button key={specKey(s)} type="button" className="chip active" onClick={() => removeSpec(s)} title="Klik untuk matikan">
+                    {INDICATOR_INFO[s.kind].emoji} {INDICATOR_INFO[s.kind].label} <span className="x">✕</span>
+                  </button>
+                ))}
+              </span>
+            )}
+          </div>
+          <div className="toolbar-right">
+            <button type="button" className="btn-ghost" onClick={() => setShowIndicators(true)} disabled={!hasData}>
+              📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
+            </button>
+            <button type="button" className="btn-primary" onClick={() => setShowBacktest(true)} disabled={!hasData}>
+              🧪 Uji strategi
+            </button>
+          </div>
         </div>
-        <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1 }}>
+
+        <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1, marginTop: 12 }}>
           {hasData ? (
             <ChartPanel candles={candles} lines={lines} />
           ) : (
-            <div className="empty">Belum ada data. Pilih saham di Langkah 1 dulu, ya. 👆</div>
+            <div className="empty">Belum ada data. Cari & pilih saham di atas dulu, ya. 👆</div>
           )}
         </div>
+        <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
+          Tarik/geser grafik untuk menjelajah, scroll untuk zoom.
+        </p>
       </Card>
 
-      {/* Langkah 3 — backtest */}
-      <Card>
-        <SectionHead
-          step={3}
-          title="Uji sebuah strategi (backtest)"
-          subtitle="Penasaran “kalau dari dulu pakai strategi ini, untung nggak?” Pilih strategi, jalankan, dan baca hasilnya yang sudah diterjemahkan."
-        />
+      {/* Popup alat bantu (indikator) — drawer di pinggir kanan agar grafik tetap terlihat */}
+      <Modal
+        open={showIndicators}
+        variant="drawer"
+        title="📊 Alat bantu (indikator)"
+        subtitle="Garis bantu untuk membaca arah harga. Klik kartu untuk menyalakan/mematikan — grafik di sebelah langsung berubah. Tidak perlu paham semuanya."
+        onClose={() => setShowIndicators(false)}
+      >
+        <IndicatorControls active={specs} onAdd={addSpec} onRemove={removeSpec} />
+      </Modal>
+
+      {/* Popup uji strategi (backtest) */}
+      <Modal
+        open={showBacktest}
+        title="🧪 Uji sebuah strategi (backtest)"
+        subtitle="Penasaran “kalau dari dulu pakai strategi ini, untung nggak?” Pilih strategi, jalankan, dan baca hasilnya yang sudah diterjemahkan."
+        onClose={() => setShowBacktest(false)}
+      >
         <BacktestPanel ticker={query.ticker} interval={query.interval} range={query.range} />
-      </Card>
+      </Modal>
     </div>
   );
 }

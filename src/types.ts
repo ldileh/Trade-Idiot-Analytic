@@ -3,7 +3,7 @@
 
 export type Interval = "1d" | "1wk" | "1mo" | "1h" | "30m" | "15m" | "5m" | "1m";
 export type Range =
-  | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y" | "10y" | "ytd" | "max";
+  | "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y" | "10y" | "ytd" | "max";
 
 export type IndicatorKind = "sma" | "ema" | "rsi" | "macd" | "bbands" | "atr";
 export type Strategy = "sma_cross" | "rsi_reversion";

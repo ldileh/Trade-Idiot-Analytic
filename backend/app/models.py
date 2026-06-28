@@ -7,7 +7,7 @@ from pydantic import BaseModel, Field
 
 # yfinance-supported values, constrained so bad input fails fast with a 422.
 Interval = Literal["1d", "1wk", "1mo", "1h", "30m", "15m", "5m", "1m"]
-Range = Literal["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
+Range = Literal["1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"]
 
 
 class Candle(BaseModel):

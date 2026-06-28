@@ -107,13 +107,22 @@ export default function BacktestPanel({
         })}
       </div>
 
+      <div className="how-box">
+        <div className="how-title">Cara kerja "{STRATEGY_INFO[strategy].label}" — patokannya:</div>
+        <ul>
+          {STRATEGY_INFO[strategy].how.map((line) => (
+            <li key={line}>{line}</li>
+          ))}
+        </ul>
+      </div>
+
       <form onSubmit={run}>
         <div className="params">
-          <Field name="fast" label="Garis cepat (hari)" tip="Rata-rata harga jangka pendek yang lincah. Saat memotong garis lambat ke atas → sinyal beli." defaultValue={10} hidden={!isSma} />
-          <Field name="slow" label="Garis lambat (hari)" tip="Rata-rata harga jangka panjang yang kalem, jadi pembanding garis cepat." defaultValue={30} hidden={!isSma} />
-          <Field name="rsi_period" label="Panjang meteran RSI" tip="RSI dihitung dari berapa hari terakhir. Umumnya 14." defaultValue={14} hidden={isSma} />
-          <Field name="rsi_lower" label="Batas 'kemurahan'" tip="Kalau RSI turun di bawah angka ini, dianggap murah → beli. Umumnya 30." defaultValue={30} hidden={isSma} />
-          <Field name="rsi_upper" label="Batas 'kemahalan'" tip="Kalau RSI naik di atas angka ini, dianggap mahal → jual. Umumnya 70." defaultValue={70} hidden={isSma} />
+          <Field name="fast" label="Garis cepat: rata-rata berapa hari?" tip="Garis cepat = rata-rata harga penutupan beberapa hari terakhir. Makin kecil makin lincah. Mis. 10. Harus lebih kecil dari garis lambat." defaultValue={10} hidden={!isSma} />
+          <Field name="slow" label="Garis lambat: rata-rata berapa hari?" tip="Garis lambat = rata-rata harga penutupan lebih banyak hari, jadi pembanding yang kalem. Mis. 30. Harus lebih besar dari garis cepat." defaultValue={30} hidden={!isSma} />
+          <Field name="rsi_period" label="Meteran RSI dihitung dari berapa hari?" tip="RSI dihitung dari pergerakan beberapa hari terakhir. Umumnya 14." defaultValue={14} hidden={isSma} />
+          <Field name="rsi_lower" label="Batas 'kemurahan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI turun DI BAWAH angka ini → dianggap murah → beli. Umumnya 30." defaultValue={30} hidden={isSma} />
+          <Field name="rsi_upper" label="Batas 'kemahalan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI naik DI ATAS angka ini → dianggap mahal → jual. Umumnya 70." defaultValue={70} hidden={isSma} />
           <Field name="cash" label="Modal awal ($)" tip="Uang awal yang dipakai untuk simulasi. Contoh: 10000 = $10.000." defaultValue={10000} />
           <Field name="commission" label="Biaya per transaksi" tip="Potongan biaya tiap beli/jual. 0.002 berarti 0,2%." defaultValue={0.002} step={0.001} />
         </div>
