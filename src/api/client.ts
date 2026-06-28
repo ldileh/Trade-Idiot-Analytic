@@ -6,6 +6,7 @@ import type {
   IndicatorRequest,
   IndicatorResponse,
   Interval,
+  PatternsResponse,
   PricesResponse,
   Range,
 } from "../types";
@@ -57,6 +58,15 @@ export function getPrices(
 ): Promise<PricesResponse> {
   const q = new URLSearchParams({ ticker, interval, range });
   return request<PricesResponse>(`/prices?${q}`);
+}
+
+export function getPatterns(
+  ticker: string,
+  interval: Interval = "1d",
+  range: Range = "1y",
+): Promise<PatternsResponse> {
+  const q = new URLSearchParams({ ticker, interval, range });
+  return request<PatternsResponse>(`/patterns?${q}`);
 }
 
 export function postIndicators(body: IndicatorRequest): Promise<IndicatorResponse> {

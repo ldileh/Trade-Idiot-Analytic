@@ -69,6 +69,24 @@ class BacktestRequest(BaseModel):
     commission: float = Field(default=0.002, ge=0, le=0.1)
 
 
+class Pattern(BaseModel):
+    """One detected chart pattern, used as a trading-decision hint."""
+
+    key: str
+    label: str
+    kind: Literal["bullish", "bearish", "neutral"]
+    summary: str
+    detail: str
+    at: int | None = None  # Unix seconds of the relevant bar, for a chart marker
+
+
+class PatternsResponse(BaseModel):
+    ticker: str
+    bias: Literal["bullish", "bearish", "neutral"]
+    bias_text: str
+    patterns: list[Pattern]
+
+
 class EquityPoint(BaseModel):
     time: int
     equity: float

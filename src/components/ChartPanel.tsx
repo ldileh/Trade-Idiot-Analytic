@@ -3,11 +3,14 @@ import {
   createChart,
   type CandlestickData,
   type IChartApi,
+  type IPriceLine,
   type ISeriesApi,
   type LineData,
+  type SeriesMarker,
+  type Time,
   type UTCTimestamp,
 } from "lightweight-charts";
-import type { Candle, IndicatorSeries } from "../types";
+import type { Candle, IndicatorSeries, Pattern } from "../types";
 import { colorFor } from "../indicators";
 
 const OSC_SCALE = "osc"; // separate price scale id for oscillator pane
@@ -31,13 +34,19 @@ function toLineData(s: IndicatorSeries): LineData[] {
 export default function ChartPanel({
   candles,
   lines,
+  patterns = [],
 }: {
   candles: Candle[];
   lines: SeriesLine[];
+  patterns?: Pattern[];
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  // Horizontal line marking the latest ("current") price; redrawn each update.
+  const nowLineRef = useRef<IPriceLine | null>(null);
+  // Candle count last fitted to view — so auto-refresh updates don't reset zoom.
+  const fittedLenRef = useRef(0);
   // Active line series keyed by indicator series name, so we add/remove only what changed.
   const lineRefs = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
 
@@ -81,7 +90,31 @@ export default function ChartPanel({
       close: c.close,
     }));
     candleRef.current?.setData(data);
-    chartRef.current?.timeScale().fitContent();
+    // Only fit when the series shape changes (new ticker/range), so a silent
+    // auto-refresh tick that just updates the last candle keeps the user's zoom.
+    if (data.length !== fittedLenRef.current) {
+      chartRef.current?.timeScale().fitContent();
+      fittedLenRef.current = data.length;
+    }
+
+    // Mark the latest close as the live "current price" so it stays readable
+    // even when the candle is tiny or the view is zoomed out.
+    const series = candleRef.current;
+    if (series) {
+      if (nowLineRef.current) series.removePriceLine(nowLineRef.current);
+      const last = candles[candles.length - 1];
+      if (last) {
+        const up = last.close >= last.open;
+        nowLineRef.current = series.createPriceLine({
+          price: last.close,
+          color: up ? "#16a34a" : "#dc2626",
+          lineWidth: 1,
+          lineStyle: 2, // dashed
+          axisLabelVisible: true,
+          title: "Harga sekarang",
+        });
+      }
+    }
   }, [candles]);
 
   // Reconcile line series with the requested `lines`: create new, update existing,
@@ -119,6 +152,35 @@ export default function ChartPanel({
       chart.priceScale(OSC_SCALE).applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
     }
   }, [lines]);
+
+  // Drop detected-pattern markers (▲ bullish below bar, ▼ bearish above bar) on
+  // the relevant bars, grouping patterns that share a bar into one marker.
+  useEffect(() => {
+    const series = candleRef.current;
+    if (!series) return;
+    const byTime = new Map<number, Pattern[]>();
+    for (const p of patterns) {
+      if (p.at == null) continue;
+      const arr = byTime.get(p.at) ?? [];
+      arr.push(p);
+      byTime.set(p.at, arr);
+    }
+    const markers: SeriesMarker<Time>[] = [...byTime.entries()]
+      .sort((a, b) => a[0] - b[0])
+      .map(([time, ps]) => {
+        const bearish = ps.some((p) => p.kind === "bearish");
+        const bullish = ps.some((p) => p.kind === "bullish");
+        const kind = bearish && !bullish ? "bearish" : bullish && !bearish ? "bullish" : "neutral";
+        return {
+          time: time as UTCTimestamp,
+          position: kind === "bearish" ? "aboveBar" : "belowBar",
+          color: kind === "bearish" ? "#dc2626" : kind === "bullish" ? "#16a34a" : "#64748b",
+          shape: kind === "bearish" ? "arrowDown" : kind === "bullish" ? "arrowUp" : "circle",
+          text: ps.map((p) => p.label).join(", "),
+        };
+      });
+    series.setMarkers(markers);
+  }, [patterns, candles]);
 
   // Fill most of the viewport height so the chart reads clearly; clamped so it
   // never gets cramped on short screens or absurdly tall on big monitors.
