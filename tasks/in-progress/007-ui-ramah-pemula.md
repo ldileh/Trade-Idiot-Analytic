@@ -14,16 +14,16 @@ dengan fokus utama: **mudah dipahami trader pemula** — setiap komponen, istila
 informasi dijelaskan pakai bahasa sederhana ("bahasa bayi"), bukan istilah teknis mentah.
 
 ## Spec / kriteria selesai
-- [ ] Sistem desain global (`src/styles.css`): tema, kartu, tombol, chip, tooltip — menggantikan inline-style polos.
-- [ ] Kamus penjelasan terpusat (`src/help.ts`): indikator, interval, range, strategi, dan statistik backtest punya label + penjelasan Bahasa Indonesia sederhana.
-- [ ] Komponen bantu: tooltip info ("?") yang bisa di-hover untuk penjelasan singkat.
-- [ ] Alur dibuat bertahap **Langkah 1–3** (pilih saham → tambah indikator → uji strategi) biar tidak membingungkan.
-- [ ] **Pilih saham** ramah: label awam (kode saham, "1 batang = berapa lama", "lihat ke belakang berapa lama") + quick-pick saham populer.
-- [ ] **Ringkasan harga** interaktif: harga terakhir, naik/turun (warna hijau/merah), tertinggi/terendah periode — bahasa awam.
-- [ ] **Indikator** sebagai kartu pilih (toggle) dengan emoji + penjelasan satu kalimat + tooltip.
-- [ ] **Chart** di-theme (lilin hijau/merah jelas) + legenda penjelasan ("lilin hijau = harga naik").
-- [ ] **Backtest**: pilih strategi sebagai kartu berpenjelasan; hasil "diterjemahkan" — tiap angka diberi label awam, penjelasan, warna baik/buruk, dan satu kalimat kesimpulan (menang/kalah lawan beli-diamkan).
-- [ ] Build lolos: `pnpm build` (tsc + vite) sukses, tidak ada error TypeScript.
+- [x] Sistem desain global (`src/styles.css`): tema, kartu, tombol, chip, tooltip — menggantikan inline-style polos.
+- [x] Kamus penjelasan terpusat (`src/help.ts`): indikator, interval, range, strategi, dan statistik backtest punya label + penjelasan Bahasa Indonesia sederhana.
+- [x] Komponen bantu: tooltip info ("?") yang bisa di-hover untuk penjelasan singkat.
+- [x] Alur dibuat bertahap **Langkah 1–3** (pilih saham → tambah indikator → uji strategi) biar tidak membingungkan.
+- [x] **Pilih saham** ramah: label awam (kode saham, "1 batang = berapa lama", "lihat ke belakang berapa lama") + quick-pick saham populer.
+- [x] **Ringkasan harga** interaktif: harga terakhir, naik/turun (warna hijau/merah), tertinggi/terendah periode — bahasa awam.
+- [x] **Indikator** sebagai kartu pilih (toggle) dengan emoji + penjelasan satu kalimat + tooltip.
+- [x] **Chart** di-theme (lilin hijau/merah jelas) + legenda penjelasan ("lilin hijau = harga naik").
+- [x] **Backtest**: pilih strategi sebagai kartu berpenjelasan; hasil "diterjemahkan" — tiap angka diberi label awam, penjelasan, warna baik/buruk, dan satu kalimat kesimpulan (menang/kalah lawan beli-diamkan).
+- [x] Build lolos: `pnpm build` (tsc + vite) sukses, tidak ada error TypeScript.
 
 ## Catatan teknis
 - Tanpa Tailwind — pakai satu file CSS + className. Logika data (fetch/effect) tidak diubah, hanya presentasi.

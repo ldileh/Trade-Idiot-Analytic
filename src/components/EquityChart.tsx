@@ -19,12 +19,13 @@ export default function EquityChart({ points }: { points: EquityPoint[] }) {
     if (!container) return;
     const chart = createChart(container, {
       autoSize: true,
-      layout: { background: { color: "#ffffff" }, textColor: "#222" },
-      grid: { vertLines: { color: "#f0f0f0" }, horzLines: { color: "#f0f0f0" } },
-      timeScale: { timeVisible: true },
+      layout: { background: { color: "#ffffff" }, textColor: "#66708a", fontFamily: "Segoe UI, system-ui, sans-serif" },
+      grid: { vertLines: { color: "#eef1f8" }, horzLines: { color: "#eef1f8" } },
+      timeScale: { timeVisible: true, borderColor: "#e3e8f3" },
+      rightPriceScale: { borderColor: "#e3e8f3" },
     });
     chartRef.current = chart;
-    seriesRef.current = chart.addLineSeries({ color: "#2962ff", lineWidth: 2 });
+    seriesRef.current = chart.addLineSeries({ color: "#4f46e5", lineWidth: 2 });
     return () => {
       chart.remove();
       chartRef.current = null;

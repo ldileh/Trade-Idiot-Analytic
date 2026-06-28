@@ -46,12 +46,22 @@ export default function ChartPanel({
     if (!container) return;
     const chart = createChart(container, {
       autoSize: true,
-      layout: { background: { color: "#ffffff" }, textColor: "#222" },
-      grid: { vertLines: { color: "#f0f0f0" }, horzLines: { color: "#f0f0f0" } },
-      timeScale: { timeVisible: true },
+      layout: { background: { color: "#ffffff" }, textColor: "#66708a", fontFamily: "Segoe UI, system-ui, sans-serif" },
+      grid: { vertLines: { color: "#eef1f8" }, horzLines: { color: "#eef1f8" } },
+      timeScale: { timeVisible: true, borderColor: "#e3e8f3" },
+      rightPriceScale: { borderColor: "#e3e8f3" },
+      crosshair: { vertLine: { color: "#b6bed4", labelBackgroundColor: "#4f46e5" }, horzLine: { color: "#b6bed4", labelBackgroundColor: "#4f46e5" } },
     });
     chartRef.current = chart;
-    candleRef.current = chart.addCandlestickSeries();
+    // Green = price closed higher than it opened; red = closed lower.
+    candleRef.current = chart.addCandlestickSeries({
+      upColor: "#16a34a",
+      downColor: "#dc2626",
+      borderUpColor: "#16a34a",
+      borderDownColor: "#dc2626",
+      wickUpColor: "#16a34a",
+      wickDownColor: "#dc2626",
+    });
     // Push the price pane up so oscillators have room at the bottom.
     chart.priceScale("right").applyOptions({ scaleMargins: { top: 0.05, bottom: 0.3 } });
     return () => {
