@@ -1,20 +1,8 @@
-import { useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Interval, Range } from "../types";
-import { INTERVAL_LABEL, RANGE_LABEL } from "../help";
+import { ALLOWED_RANGES, INTERVAL_LABEL, INTERVAL_LOOKBACK_NOTE, INTERVAL_ORDER, RANGE_LABEL } from "../help";
+import { POPULAR_SYMS, STOCKS } from "../stocks";
 import { InfoTip } from "./ui";
-
-const INTERVALS: Interval[] = ["1d", "1wk", "1mo", "1h", "30m", "15m", "5m", "1m"];
-const RANGES: Range[] = ["1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"];
-
-// A few well-known US tickers so a beginner can start with one click.
-const POPULAR: { sym: string; name: string }[] = [
-  { sym: "AAPL", name: "Apple" },
-  { sym: "MSFT", name: "Microsoft" },
-  { sym: "GOOGL", name: "Google" },
-  { sym: "AMZN", name: "Amazon" },
-  { sym: "TSLA", name: "Tesla" },
-  { sym: "NVDA", name: "Nvidia" },
-];
 
 export interface TickerQuery {
   ticker: string;
@@ -22,7 +10,15 @@ export interface TickerQuery {
   range: Range;
 }
 
-// Controlled so quick-pick chips can update the ticker box live.
+// Pick the look-back to keep when the interval changes: reuse the current range
+// if it's still valid, otherwise fall back to the longest range that interval
+// allows (so switching to a minute interval doesn't trigger a data error).
+function clampRange(interval: Interval, range: Range): Range {
+  const allowed = ALLOWED_RANGES[interval];
+  return allowed.includes(range) ? range : allowed[allowed.length - 1];
+}
+
+// Controlled so quick-pick chips and the search list can update the box live.
 export default function TickerInput({
   value,
   loading,
@@ -33,37 +29,67 @@ export default function TickerInput({
   onSubmit: (q: TickerQuery) => void;
 }) {
   const [ticker, setTicker] = useState(value.ticker);
-  const [interval, setInterval] = useState<Interval>(value.interval);
+  const [interval, setIntervalState] = useState<Interval>(value.interval);
   const [range, setRange] = useState<Range>(value.range);
+  const [open, setOpen] = useState(false);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  const allowedRanges = ALLOWED_RANGES[interval];
+
+  // Filter the curated list by symbol or company name as the user types.
+  const matches = useMemo(() => {
+    const q = ticker.trim().toLowerCase();
+    if (!q) return STOCKS;
+    return STOCKS.filter((s) => s.sym.toLowerCase().includes(q) || s.name.toLowerCase().includes(q));
+  }, [ticker]);
+
+  // Close the search dropdown when clicking outside it.
+  useEffect(() => {
+    function onDoc(e: MouseEvent) {
+      if (boxRef.current && !boxRef.current.contains(e.target as Node)) setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    return () => document.removeEventListener("mousedown", onDoc);
+  }, []);
 
   function submit(next?: Partial<TickerQuery>) {
+    const nextInterval = next?.interval ?? interval;
     const q: TickerQuery = {
       ticker: (next?.ticker ?? ticker).trim().toUpperCase(),
-      interval: next?.interval ?? interval,
-      range: next?.range ?? range,
+      interval: nextInterval,
+      range: clampRange(nextInterval, next?.range ?? range),
     };
     if (!q.ticker) return;
     onSubmit(q);
   }
 
+  function pickStock(sym: string) {
+    setTicker(sym);
+    setOpen(false);
+    submit({ ticker: sym });
+  }
+
+  function changeInterval(next: Interval) {
+    const nextRange = clampRange(next, range);
+    setIntervalState(next);
+    setRange(nextRange);
+    submit({ interval: next, range: nextRange });
+  }
+
   return (
     <div>
-      <div className="chips" style={{ marginBottom: 14 }}>
+      <div className="chips" style={{ marginBottom: 12 }}>
         <span className="muted" style={{ fontSize: 13, fontWeight: 600, alignSelf: "center" }}>
           Coba cepat:
         </span>
-        {POPULAR.map((p) => (
+        {POPULAR_SYMS.map((sym) => (
           <button
-            key={p.sym}
+            key={sym}
             type="button"
-            className={`chip${ticker.toUpperCase() === p.sym ? " active" : ""}`}
-            title={p.name}
-            onClick={() => {
-              setTicker(p.sym);
-              submit({ ticker: p.sym });
-            }}
+            className={`chip${ticker.toUpperCase() === sym ? " active" : ""}`}
+            onClick={() => pickStock(sym)}
           >
-            {p.sym}
+            {sym}
           </button>
         ))}
       </div>
@@ -72,43 +98,62 @@ export default function TickerInput({
         className="row"
         onSubmit={(e) => {
           e.preventDefault();
+          setOpen(false);
           submit();
         }}
       >
-        <label className="field" style={{ flex: "1 1 160px" }}>
+        <label className="field" style={{ flex: "1 1 240px" }}>
           <span>
-            Kode saham{" "}
-            <InfoTip text="Kode singkat perusahaan di bursa Amerika. Contoh: AAPL = Apple, TSLA = Tesla. Ketik kodenya lalu tekan Tampilkan." />
+            Cari saham{" "}
+            <InfoTip text="Ketik nama perusahaan (mis. 'Apple') atau kodenya (mis. 'AAPL'), lalu pilih dari daftar. Bisa juga ketik kode lain yang tidak ada di daftar." />
           </span>
-          <input
-            value={ticker}
-            onChange={(e) => setTicker(e.target.value)}
-            placeholder="contoh: AAPL"
-            aria-label="Kode saham"
-            autoComplete="off"
-            style={{ textTransform: "uppercase" }}
-          />
+          <div className="combo" ref={boxRef}>
+            <input
+              value={ticker}
+              onChange={(e) => {
+                setTicker(e.target.value);
+                setOpen(true);
+              }}
+              onFocus={() => setOpen(true)}
+              placeholder="ketik nama atau kode, mis. Apple / AAPL"
+              aria-label="Cari saham"
+              autoComplete="off"
+              style={{ textTransform: "none" }}
+            />
+            {open && matches.length > 0 && (
+              <ul className="combo-list" role="listbox">
+                {matches.slice(0, 8).map((s) => (
+                  <li key={s.sym}>
+                    <button type="button" className="combo-item" onClick={() => pickStock(s.sym)}>
+                      <b>{s.sym}</b>
+                      <span className="muted">{s.name}</span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </label>
 
-        <label className="field" style={{ flex: "1 1 170px" }}>
+        <label className="field" style={{ flex: "1 1 150px" }}>
           <span>
             1 batang lilin ={" "}
             <InfoTip text="Tiap batang lilin di grafik mewakili rentang waktu ini. '1 hari' artinya satu batang = pergerakan harga selama satu hari." />
           </span>
-          <select value={interval} onChange={(e) => setInterval(e.target.value as Interval)} aria-label="Interval">
-            {INTERVALS.map((i) => (
+          <select value={interval} onChange={(e) => changeInterval(e.target.value as Interval)} aria-label="Interval">
+            {INTERVAL_ORDER.map((i) => (
               <option key={i} value={i}>{INTERVAL_LABEL[i]}</option>
             ))}
           </select>
         </label>
 
-        <label className="field" style={{ flex: "1 1 190px" }}>
+        <label className="field" style={{ flex: "1 1 180px" }}>
           <span>
             Lihat ke belakang{" "}
-            <InfoTip text="Seberapa jauh ke masa lalu data harga ditampilkan. Makin panjang, makin banyak sejarah yang terlihat." />
+            <InfoTip text="Seberapa jauh ke masa lalu data harga ditampilkan. Pilihan menyesuaikan jenis lilin: lilin menit hanya punya sejarah pendek." />
           </span>
           <select value={range} onChange={(e) => setRange(e.target.value as Range)} aria-label="Range">
-            {RANGES.map((r) => (
+            {allowedRanges.map((r) => (
               <option key={r} value={r}>{RANGE_LABEL[r]}</option>
             ))}
           </select>
@@ -118,6 +163,10 @@ export default function TickerInput({
           {loading ? "Memuat…" : "Tampilkan"}
         </button>
       </form>
+
+      <p className="muted" style={{ fontSize: 12, margin: "8px 0 0" }}>
+        {INTERVAL_LOOKBACK_NOTE[interval]}
+      </p>
     </div>
   );
 }
