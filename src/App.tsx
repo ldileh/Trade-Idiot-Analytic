@@ -91,57 +91,64 @@ export default function App() {
         </div>
       </header>
 
-      {/* Pilih saham — form di atas grafik */}
-      <Card>
-        <TickerInput value={query} loading={loading} onSubmit={setQuery} />
-        {loading && <div className="loading-bar" style={{ marginTop: 12 }} />}
-        {error && <div className="alert" role="alert">{error}</div>}
-        {hasData && (
-          <div style={{ marginTop: 14 }}>
-            <PriceSummary ticker={query.ticker} candles={candles} />
-          </div>
-        )}
-      </Card>
-
-      {/* Grafik utama + alat di pinggir */}
-      <Card>
-        <div className="toolbar">
-          <div className="toolbar-left">
-            <span className="legend">
-              <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
-              <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
-            </span>
-            {specs.length > 0 && (
-              <span className="chips">
-                {specs.map((s) => (
-                  <button key={specKey(s)} type="button" className="chip active" onClick={() => removeSpec(s)} title="Klik untuk matikan">
-                    {INDICATOR_INFO[s.kind].emoji} {INDICATOR_INFO[s.kind].label} <span className="x">✕</span>
-                  </button>
-                ))}
-              </span>
+      {/* Dua kolom: form pilih saham di samping (kiri), grafik utama (kanan) */}
+      <div className="layout">
+        {/* Kolom kiri — pilih saham + ringkasan harga */}
+        <aside className="side">
+          <Card>
+            <TickerInput value={query} loading={loading} onSubmit={setQuery} />
+            {loading && <div className="loading-bar" style={{ marginTop: 12 }} />}
+            {error && <div className="alert" role="alert">{error}</div>}
+            {hasData && (
+              <div style={{ marginTop: 14 }}>
+                <PriceSummary ticker={query.ticker} candles={candles} />
+              </div>
             )}
-          </div>
-          <div className="toolbar-right">
-            <button type="button" className="btn-ghost" onClick={() => setShowIndicators(true)} disabled={!hasData}>
-              📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
-            </button>
-            <button type="button" className="btn-primary" onClick={() => setShowBacktest(true)} disabled={!hasData}>
-              🧪 Uji strategi
-            </button>
-          </div>
-        </div>
+          </Card>
+        </aside>
 
-        <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1, marginTop: 12 }}>
-          {hasData ? (
-            <ChartPanel candles={candles} lines={lines} />
-          ) : (
-            <div className="empty">Belum ada data. Cari & pilih saham di atas dulu, ya. 👆</div>
-          )}
-        </div>
-        <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
-          Tarik/geser grafik untuk menjelajah, scroll untuk zoom.
-        </p>
-      </Card>
+        {/* Kolom kanan — grafik besar + alat */}
+        <section className="main">
+          <Card>
+            <div className="toolbar">
+              <div className="toolbar-left">
+                <span className="legend">
+                  <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
+                  <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
+                </span>
+                {specs.length > 0 && (
+                  <span className="chips">
+                    {specs.map((s) => (
+                      <button key={specKey(s)} type="button" className="chip active" onClick={() => removeSpec(s)} title="Klik untuk matikan">
+                        {INDICATOR_INFO[s.kind].emoji} {INDICATOR_INFO[s.kind].label} <span className="x">✕</span>
+                      </button>
+                    ))}
+                  </span>
+                )}
+              </div>
+              <div className="toolbar-right">
+                <button type="button" className="btn-ghost" onClick={() => setShowIndicators(true)} disabled={!hasData}>
+                  📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
+                </button>
+                <button type="button" className="btn-primary" onClick={() => setShowBacktest(true)} disabled={!hasData}>
+                  🧪 Uji strategi
+                </button>
+              </div>
+            </div>
+
+            <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1, marginTop: 12 }}>
+              {hasData ? (
+                <ChartPanel candles={candles} lines={lines} />
+              ) : (
+                <div className="empty">Belum ada data. Cari & pilih saham di sebelah kiri dulu, ya. 👈</div>
+              )}
+            </div>
+            <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
+              Tarik/geser grafik untuk menjelajah, scroll untuk zoom.
+            </p>
+          </Card>
+        </section>
+      </div>
 
       {/* Popup alat bantu (indikator) — drawer di pinggir kanan agar grafik tetap terlihat */}
       <Modal
