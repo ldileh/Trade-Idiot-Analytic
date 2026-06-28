@@ -1,14 +1,15 @@
 import { useEffect, useState } from "react";
-import { getPrices, postIndicators } from "./api/client";
+import { getPatterns, getPrices, postIndicators } from "./api/client";
 import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import IndicatorControls from "./components/IndicatorControls";
+import PatternPanel from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
-import type { Candle, IndicatorSpec } from "./types";
+import type { Candle, IndicatorSpec, PatternsResponse } from "./types";
 
 const DEFAULT_QUERY: TickerQuery = { ticker: "AAPL", interval: "1d", range: "1y" };
 
@@ -17,6 +18,8 @@ export default function App() {
   const [specs, setSpecs] = useState<IndicatorSpec[]>([]);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [lines, setLines] = useState<SeriesLine[]>([]);
+  const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
+  const [patternsLoading, setPatternsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showIndicators, setShowIndicators] = useState(false);
@@ -42,6 +45,35 @@ export default function App() {
     return () => {
       cancelled = true;
     };
+  }, [query]);
+
+  // Detected chart patterns follow the query (recomputed from current prices).
+  useEffect(() => {
+    let cancelled = false;
+    setPatternsLoading(true);
+    setPatterns(null);
+    getPatterns(query.ticker, query.interval, query.range)
+      .then((res) => !cancelled && setPatterns(res))
+      .catch(() => !cancelled && setPatterns(null))
+      .finally(() => !cancelled && setPatternsLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [query]);
+
+  // Auto-refresh: silently refetch the latest candles + patterns so the chart &
+  // price track the current market price. No loading bar, and the last good data
+  // is kept on a transient failure, so the view never flickers. (Backend ~60s cache.)
+  useEffect(() => {
+    const id = setInterval(() => {
+      getPrices(query.ticker, query.interval, query.range)
+        .then((res) => res.candles.length > 0 && setCandles(res.candles))
+        .catch(() => {});
+      getPatterns(query.ticker, query.interval, query.range)
+        .then((res) => setPatterns(res))
+        .catch(() => {});
+    }, 60_000);
+    return () => clearInterval(id);
   }, [query]);
 
   // Indicators follow both the query and the active spec list.
@@ -105,6 +137,12 @@ export default function App() {
               </div>
             )}
           </Card>
+
+          {hasData && (
+            <Card>
+              <PatternPanel data={patterns} loading={patternsLoading} />
+            </Card>
+          )}
         </aside>
 
         {/* Kolom kanan — grafik besar + alat */}
@@ -138,7 +176,7 @@ export default function App() {
 
             <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1, marginTop: 12 }}>
               {hasData ? (
-                <ChartPanel candles={candles} lines={lines} />
+                <ChartPanel candles={candles} lines={lines} patterns={patterns?.patterns ?? []} />
               ) : (
                 <div className="empty">Belum ada data. Cari & pilih saham di sebelah kiri dulu, ya. 👈</div>
               )}

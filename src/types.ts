@@ -61,6 +61,24 @@ export interface BacktestRequest {
   commission?: number;
 }
 
+export type PatternKind = "bullish" | "bearish" | "neutral";
+
+export interface Pattern {
+  key: string;
+  label: string;
+  kind: PatternKind;
+  summary: string;
+  detail: string;
+  at: number | null; // Unix epoch seconds for a chart marker, or null
+}
+
+export interface PatternsResponse {
+  ticker: string;
+  bias: PatternKind;
+  bias_text: string;
+  patterns: Pattern[];
+}
+
 export interface EquityPoint {
   time: number;
   equity: number;

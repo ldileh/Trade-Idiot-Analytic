@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import backtest, indicators, prices
+from app.routers import backtest, indicators, patterns, prices
 
 
 def create_app() -> FastAPI:
@@ -30,6 +30,7 @@ def create_app() -> FastAPI:
 
     app.include_router(prices.router)
     app.include_router(indicators.router)
+    app.include_router(patterns.router)
     app.include_router(backtest.router)
 
     return app

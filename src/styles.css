@@ -185,6 +185,18 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .ind-card .desc { color: var(--muted); font-size: 12.5px; margin-top: 6px; }
 .ind-card .tick { color: var(--accent); font-weight: 800; }
 
+/* ---- detected patterns ----------------------------------------------------- */
+.pattern-list { display: grid; gap: 8px; }
+.pattern {
+  background: var(--surface-2); border: 1px solid var(--border); border-left-width: 4px;
+  border-radius: var(--radius-sm); padding: 10px 12px;
+}
+.pattern.bullish { border-left-color: var(--up); }
+.pattern.bearish { border-left-color: var(--down); }
+.pattern.neutral { border-left-color: var(--border-strong); }
+.pattern .p-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13.5px; }
+.pattern .p-sum { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.45; }
+
 /* ---- chart legend ---------------------------------------------------------- */
 .legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
 .legend .dot { display: inline-flex; align-items: center; gap: 6px; }
@@ -203,7 +215,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .params { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-top: 14px; }
 
 /* ---- result stats ---------------------------------------------------------- */
-.verdict { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 4px; }
+.verdict { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-radius: var(--radius-sm); font-weight: 600; margin-top: 4px; background: var(--surface-2); color: var(--text); }
 .verdict.good { background: var(--up-soft); color: #11602f; }
 .verdict.bad { background: var(--down-soft); color: #8a1c1c; }
 .verdict .emoji { font-size: 26px; }
@@ -278,7 +290,10 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   background: var(--surface-2); color: var(--muted); font-size: 15px; font-weight: 800;
 }
 .modal-x:hover { background: var(--down-soft); color: var(--down); }
-.modal-body { padding: 18px 20px; overflow-y: auto; }
+/* overflow-x:hidden is required: with only overflow-y set, CSS promotes the
+   x-axis to "auto", so a chart canvas that is 1px too wide spawns a phantom
+   horizontal scrollbar even when there is nothing to scroll to. */
+.modal-body { padding: 18px 20px; overflow-y: auto; overflow-x: hidden; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 @keyframes pop-in { from { transform: translateY(8px) scale(.98); opacity: 0; } to { transform: none; opacity: 1; } }
 @keyframes slide-in { from { transform: translateX(30px); opacity: .6; } to { transform: none; opacity: 1; } }
