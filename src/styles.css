@@ -49,31 +49,51 @@ body {
 h1, h2, h3 { margin: 0; line-height: 1.25; }
 
 /* ---- layout ---------------------------------------------------------------- */
-.app { max-width: 1400px; margin: 0 auto; padding: 28px 20px 60px; }
+/* Lock the app to one viewport: the page itself never scrolls. The chart (right)
+   stays put; only the left column scrolls internally (with the scrollbar hidden). */
+.app {
+  max-width: 1760px; margin: 0 auto; padding: 16px 24px;
+  height: 100vh; overflow: hidden;
+  display: flex; flex-direction: column;
+}
 
-/* Two columns: stock-picker sidebar (left) + big chart (right). */
-.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: start; }
+/* Two columns: stock-picker sidebar (left) + big chart (right).
+   align-items: stretch makes both columns fill the row height, so the left
+   column gets a definite height to scroll within (a % max-height would not
+   resolve against an auto row and the content would just be clipped). */
+.layout { display: grid; grid-template-columns: 340px minmax(0, 1fr); gap: 18px; align-items: stretch; flex: 1; min-height: 0; }
 .layout .card { margin-bottom: 0; }
 .side {
-  position: sticky; top: 20px;
   display: flex; flex-direction: column; gap: 18px;
-  max-height: calc(100vh - 40px); overflow-y: auto;
+  min-height: 0; overflow-y: auto;  /* scroll the left column internally */
+  scrollbar-width: none;            /* Firefox: hide scrollbar, keep scrolling */
 }
+.side::-webkit-scrollbar { display: none; }  /* WebKit: same */
+
+/* Right column: chart fills the row height (no fixed px), so the grid track
+   never exceeds the viewport and the left column scrolls within it cleanly. */
+.main { display: flex; min-height: 0; }
+.chart-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.chart-card .chart-wrap { flex: 1; min-height: 0; }
+
 @media (max-width: 900px) {
-  .layout { grid-template-columns: 1fr; }
-  .side { position: static; }
+  .app { height: auto; overflow: visible; }   /* stacked: let the page scroll */
+  .layout { grid-template-columns: 1fr; flex: none; align-items: start; }
+  .side { overflow: visible; }
+  .main { display: block; }
+  .chart-card .chart-wrap { height: 70vh; }    /* give the chart real height when stacked */
 }
 
 .app-header {
-  display: flex; align-items: center; gap: 14px;
-  padding: 18px 22px; margin-bottom: 22px;
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 18px; margin-bottom: 14px;
   background: linear-gradient(120deg, #1e2a52 0%, #283a73 55%, #2f2a6e 100%);
   color: #fff; border-radius: var(--radius);
   box-shadow: var(--shadow);
 }
-.app-header .logo { font-size: 30px; line-height: 1; }
-.app-header h1 { font-size: 20px; font-weight: 800; letter-spacing: .2px; }
-.app-header p { margin: 2px 0 0; font-size: 13px; color: #c5cdf0; }
+.app-header .logo { font-size: 24px; line-height: 1; }
+.app-header h1 { font-size: 17px; font-weight: 800; letter-spacing: .2px; }
+.app-header p { margin: 1px 0 0; font-size: 12px; color: #c5cdf0; }
 
 /* ---- cards & sections ------------------------------------------------------ */
 .card {
@@ -290,7 +310,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .modal-head h2 { font-size: 17px; font-weight: 800; }
 .modal-sub { margin: 4px 0 0; color: var(--muted); font-size: 13px; }
 .modal-x {
-  flex: none; width: 32px; height: 32px; border-radius: 8px;
+  flex: none; width: 32px; height: 32px; border-radius: 8px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
   background: var(--surface-2); color: var(--muted); font-size: 15px; font-weight: 800;
 }
 .modal-x:hover { background: var(--down-soft); color: var(--down); }

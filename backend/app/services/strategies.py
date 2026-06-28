@@ -58,6 +58,26 @@ class RsiReversion(Strategy):
             self.position.close()
 
 
+class TrendFollow(Strategy):
+    """Long-term trend following: hold while close is above its long SMA, exit below.
+
+    The single most robust retail rule there is — it never predicts, it just
+    sidesteps big drawdowns, which is why it holds up across eras.
+    """
+
+    trend_period = 200
+
+    def init(self) -> None:
+        close = pd.Series(self.data.Close)
+        self.trend = self.I(_sma, close, self.trend_period)
+
+    def next(self) -> None:
+        if self.data.Close[-1] > self.trend[-1] and not self.position:
+            self.buy()
+        elif self.data.Close[-1] < self.trend[-1] and self.position:
+            self.position.close()
+
+
 def run_backtest(df: pd.DataFrame, params) -> tuple[pd.Series, pd.DataFrame]:
     """Run a backtest, returning (stats Series, equity_curve DataFrame).
 
@@ -78,6 +98,9 @@ def run_backtest(df: pd.DataFrame, params) -> tuple[pd.Series, pd.DataFrame]:
             "lower": params.rsi_lower,
             "upper": params.rsi_upper,
         }
+    elif params.strategy == "trend_follow":
+        strategy_cls = TrendFollow
+        kwargs = {"trend_period": params.trend_period}
     else:
         raise ValueError(f"Unknown strategy: {params.strategy!r}")
 

@@ -5,7 +5,7 @@ import { STAT_INFO, STRATEGY_INFO } from "../help";
 import { InfoTip } from "./ui";
 import EquityChart from "./EquityChart";
 
-const STRATEGIES: Strategy[] = ["sma_cross", "rsi_reversion"];
+const STRATEGIES: Strategy[] = ["sma_cross", "rsi_reversion", "trend_follow"];
 
 // Order stats are shown in (only those present render). Keeps the most useful
 // numbers first so a beginner reads top-to-bottom.
@@ -63,6 +63,7 @@ export default function BacktestPanel({
       ticker, interval, range, strategy,
       fast: num("fast"), slow: num("slow"),
       rsi_period: num("rsi_period"), rsi_lower: num("rsi_lower"), rsi_upper: num("rsi_upper"),
+      trend_period: num("trend_period"),
       cash: num("cash"), commission: num("commission"),
     };
     setLoading(true);
@@ -77,6 +78,8 @@ export default function BacktestPanel({
   }
 
   const isSma = strategy === "sma_cross";
+  const isRsi = strategy === "rsi_reversion";
+  const isTrend = strategy === "trend_follow";
 
   return (
     <div>
@@ -120,11 +123,12 @@ export default function BacktestPanel({
         <div className="params">
           <Field name="fast" label="Garis cepat: rata-rata berapa hari?" tip="Garis cepat = rata-rata harga penutupan beberapa hari terakhir. Makin kecil makin lincah. Mis. 10. Harus lebih kecil dari garis lambat." defaultValue={10} hidden={!isSma} />
           <Field name="slow" label="Garis lambat: rata-rata berapa hari?" tip="Garis lambat = rata-rata harga penutupan lebih banyak hari, jadi pembanding yang kalem. Mis. 30. Harus lebih besar dari garis cepat." defaultValue={30} hidden={!isSma} />
-          <Field name="rsi_period" label="Meteran RSI dihitung dari berapa hari?" tip="RSI dihitung dari pergerakan beberapa hari terakhir. Umumnya 14." defaultValue={14} hidden={isSma} />
-          <Field name="rsi_lower" label="Batas 'kemurahan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI turun DI BAWAH angka ini → dianggap murah → beli. Umumnya 30." defaultValue={30} hidden={isSma} />
-          <Field name="rsi_upper" label="Batas 'kemahalan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI naik DI ATAS angka ini → dianggap mahal → jual. Umumnya 70." defaultValue={70} hidden={isSma} />
+          <Field name="rsi_period" label="Meteran RSI dihitung dari berapa hari?" tip="RSI dihitung dari pergerakan beberapa hari terakhir. Umumnya 14." defaultValue={14} hidden={!isRsi} />
+          <Field name="rsi_lower" label="Batas 'kemurahan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI turun DI BAWAH angka ini → dianggap murah → beli. Umumnya 30." defaultValue={30} hidden={!isRsi} />
+          <Field name="rsi_upper" label="Batas 'kemahalan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI naik DI ATAS angka ini → dianggap mahal → jual. Umumnya 70." defaultValue={70} hidden={!isRsi} />
+          <Field name="trend_period" label="Garis tren panjang: rata-rata berapa hari?" tip="Garis tren besar dari rata-rata harga sekian hari. Klasiknya 200 hari (±10 bulan bursa). Makin besar makin kalem & jarang transaksi. Pakai rentang waktu 2–5 tahun biar garisnya sempat terbentuk." defaultValue={200} hidden={!isTrend} />
           <Field name="cash" label="Modal awal ($)" tip="Uang awal yang dipakai untuk simulasi. Contoh: 10000 = $10.000." defaultValue={10000} />
-          <Field name="commission" label="Biaya per transaksi" tip="Potongan biaya tiap beli/jual. 0.002 berarti 0,2%." defaultValue={0.002} step={0.001} />
+          <FeeField />
         </div>
 
         <button type="submit" className="btn-primary" disabled={loading} style={{ marginTop: 16 }}>
@@ -185,6 +189,56 @@ function Result({ result }: { result: BacktestResponse }) {
         <EquityChart points={result.equity_curve} />
       </div>
     </>
+  );
+}
+
+// Real Gotrade trading fees (all-in, inclusive of PPN), as a fraction per trade.
+// Source: heygotrade.com/id/fee — Reguler 0,3%, Prestige 0,2%.
+// ponytail: flat fraction only; Gotrade's $0.10 min/trade isn't modeled (negligible
+// at normal sizing). Add per-trade min only if someone backtests tiny positions.
+const FEE_OPTIONS = [
+  { mode: "default", label: "Default — 0,2%", value: 0.002 },
+  { mode: "gotrade_regular", label: "Gotrade Reguler — 0,3%", value: 0.003 },
+  { mode: "gotrade_prestige", label: "Gotrade Prestige — 0,2%", value: 0.002 },
+  { mode: "custom", label: "Atur sendiri", value: null },
+] as const;
+
+// Biaya per transaksi: pick a preset (app default or a real Gotrade tier) or
+// type your own. Renders a number input named "commission" so the form reads it
+// the same as the other fields.
+function FeeField() {
+  const [mode, setMode] = useState<(typeof FEE_OPTIONS)[number]["mode"]>("default");
+  const [value, setValue] = useState(0.002);
+
+  function pick(next: typeof mode) {
+    setMode(next);
+    const preset = FEE_OPTIONS.find((o) => o.mode === next)!.value;
+    if (preset != null) setValue(preset);
+  }
+
+  return (
+    <label className="field">
+      <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+        Biaya per transaksi{" "}
+        <InfoTip text="Potongan biaya tiap beli/jual, sebagai pecahan: 0,002 = 0,2%. Pilih biaya Gotrade (Reguler 0,3% / Prestige 0,2%, sudah termasuk PPN) atau atur sendiri." />
+      </span>
+      <select value={mode} onChange={(e) => pick(e.target.value as typeof mode)}>
+        {FEE_OPTIONS.map((o) => (
+          <option key={o.mode} value={o.mode}>{o.label}</option>
+        ))}
+      </select>
+      {/* Only shown for "Atur sendiri"; stays in the DOM (display:none) when a
+          preset is picked so the form still submits commission, and the column
+          lines up with the single-input fields next to it. */}
+      <input
+        name="commission"
+        type="number"
+        step={0.001}
+        value={value}
+        onChange={(e) => setValue(Number(e.target.value))}
+        style={{ display: mode === "custom" ? undefined : "none" }}
+      />
+    </label>
   );
 }
 

@@ -137,6 +137,18 @@ export const STRATEGY_INFO: Record<Strategy, StrategyInfo> = {
       "JUAL saat RSI naik di atas 'batas kemahalan' (mis. 70) → dianggap sudah naik terlalu tinggi.",
     ],
   },
+  trend_follow: {
+    label: "Ikut Tren Jangka Panjang",
+    emoji: "📈",
+    desc: "Strategi paling sederhana & paling tahan banting: ikut saja selama harga di atas garis tren panjang, minggir ke uang tunai saat di bawah.",
+    how: [
+      "Patokannya satu garis rata-rata panjang (mis. 200 hari) — gambaran arah besar harga, bukan goyangan harian.",
+      "BELI / tetap pegang saat harga penutupan ADA DI ATAS garis itu (tren besar masih naik).",
+      "JUAL / pindah ke uang tunai saat harga jatuh DI BAWAH garis (tren besar berbalik turun).",
+      "Tujuannya bukan menebak puncak atau dasar, tapi menghindari kerugian besar saat pasar jatuh — itu yang bikin strategi ini awet dari tahun ke tahun.",
+      "Paling pas diuji dengan rentang panjang (2–5 tahun) karena garisnya butuh banyak hari untuk terbentuk.",
+    ],
+  },
 };
 
 // Friendly label, plain explanation, and good/bad direction for each backtest

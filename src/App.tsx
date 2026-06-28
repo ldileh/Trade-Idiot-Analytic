@@ -3,7 +3,7 @@ import { getPatterns, getPrices, postIndicators } from "./api/client";
 import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import IndicatorControls from "./components/IndicatorControls";
-import PatternPanel from "./components/PatternPanel";
+import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
@@ -24,6 +24,7 @@ export default function App() {
   const [error, setError] = useState<string | null>(null);
   const [showIndicators, setShowIndicators] = useState(false);
   const [showBacktest, setShowBacktest] = useState(false);
+  const [showPatterns, setShowPatterns] = useState(false);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
@@ -138,16 +139,11 @@ export default function App() {
             )}
           </Card>
 
-          {hasData && (
-            <Card>
-              <PatternPanel data={patterns} loading={patternsLoading} />
-            </Card>
-          )}
         </aside>
 
         {/* Kolom kanan — grafik besar + alat */}
         <section className="main">
-          <Card>
+          <Card className="chart-card">
             <div className="toolbar">
               <div className="toolbar-left">
                 <span className="legend">
@@ -165,6 +161,10 @@ export default function App() {
                 )}
               </div>
               <div className="toolbar-right">
+                <button type="button" className="btn-ghost" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
+                  🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
+                  {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setShowIndicators(true)} disabled={!hasData}>
                   📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
                 </button>
@@ -197,6 +197,17 @@ export default function App() {
         onClose={() => setShowIndicators(false)}
       >
         <IndicatorControls active={specs} onAdd={addSpec} onRemove={removeSpec} />
+      </Modal>
+
+      {/* Popup pola terdeteksi — drawer di pinggir kanan agar penanda pola di grafik tetap terlihat */}
+      <Modal
+        open={showPatterns}
+        variant="drawer"
+        title="🔍 Pola terdeteksi"
+        subtitle="Pola grafik klasik yang ditemukan otomatis dari harga yang sedang ditampilkan. Bahan bantu keputusan, BUKAN jaminan. Selalu kelola risiko."
+        onClose={() => setShowPatterns(false)}
+      >
+        <PatternPanel data={patterns} loading={patternsLoading} />
       </Modal>
 
       {/* Popup uji strategi (backtest) */}

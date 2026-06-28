@@ -6,7 +6,7 @@ export type Range =
   | "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y" | "2y" | "5y" | "10y" | "ytd" | "max";
 
 export type IndicatorKind = "sma" | "ema" | "rsi" | "macd" | "bbands" | "atr";
-export type Strategy = "sma_cross" | "rsi_reversion";
+export type Strategy = "sma_cross" | "rsi_reversion" | "trend_follow";
 
 export interface Candle {
   time: number; // Unix epoch seconds
@@ -57,6 +57,7 @@ export interface BacktestRequest {
   rsi_period?: number;
   rsi_lower?: number;
   rsi_upper?: number;
+  trend_period?: number;
   cash?: number;
   commission?: number;
 }

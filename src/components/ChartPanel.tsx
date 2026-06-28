@@ -182,7 +182,6 @@ export default function ChartPanel({
     series.setMarkers(markers);
   }, [patterns, candles]);
 
-  // Fill most of the viewport height so the chart reads clearly; clamped so it
-  // never gets cramped on short screens or absurdly tall on big monitors.
-  return <div ref={containerRef} style={{ width: "100%", height: "clamp(440px, calc(100vh - 230px), 860px)" }} />;
+  // Fill the chart column (parent is flex). autoSize keeps the canvas in sync.
+  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
 }

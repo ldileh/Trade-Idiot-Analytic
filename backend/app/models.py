@@ -59,12 +59,13 @@ class BacktestRequest(BaseModel):
     ticker: str
     interval: Interval = "1d"
     range: Range = "1y"
-    strategy: Literal["sma_cross", "rsi_reversion"] = "sma_cross"
+    strategy: Literal["sma_cross", "rsi_reversion", "trend_follow"] = "sma_cross"
     fast: int = Field(default=10, ge=1, le=500)
     slow: int = Field(default=30, ge=1, le=500)
     rsi_period: int = Field(default=14, ge=2, le=200)
     rsi_lower: int = Field(default=30, ge=1, le=99)
     rsi_upper: int = Field(default=70, ge=1, le=99)
+    trend_period: int = Field(default=200, ge=2, le=500)
     cash: float = Field(default=10_000, gt=0)
     commission: float = Field(default=0.002, ge=0, le=0.1)
 
