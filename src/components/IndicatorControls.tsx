@@ -1,8 +1,10 @@
 import type { IndicatorKind, IndicatorSpec } from "../types";
-import { INDICATOR_KINDS, specKey } from "../indicators";
+import { INDICATOR_KINDS, colorFor } from "../indicators";
+import { INDICATOR_INFO } from "../help";
+import { InfoTip } from "./ui";
 
-// Add/remove indicators without reloading. Parent owns the active list; this
-// component is a thin controlled form over it.
+// Pick indicators as friendly cards. Each card toggles one indicator kind on/off;
+// when on, a small period control appears. Parent owns the active spec list.
 export default function IndicatorControls({
   active,
   onAdd,
@@ -12,56 +14,79 @@ export default function IndicatorControls({
   onAdd: (spec: IndicatorSpec) => void;
   onRemove: (spec: IndicatorSpec) => void;
 }) {
-  return (
-    <div style={{ marginTop: "1rem" }}>
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          const form = e.currentTarget;
-          const kind = (form.elements.namedItem("kind") as HTMLSelectElement).value as IndicatorKind;
-          const period = Number((form.elements.namedItem("period") as HTMLInputElement).value);
-          if (!Number.isFinite(period) || period < 1) return;
-          onAdd({ kind, period });
-        }}
-        style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}
-      >
-        <select name="kind" defaultValue="ema" aria-label="Jenis indikator">
-          {INDICATOR_KINDS.map((k) => (
-            <option key={k} value={k}>{k.toUpperCase()}</option>
-          ))}
-        </select>
-        <input
-          name="period"
-          type="number"
-          min={1}
-          max={500}
-          defaultValue={20}
-          aria-label="Period"
-          style={{ width: "5rem" }}
-        />
-        <button type="submit">+ Indikator</button>
-      </form>
+  const activeOf = (kind: IndicatorKind) => active.find((s) => s.kind === kind);
 
-      {active.length > 0 && (
-        <ul style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", listStyle: "none", padding: 0, marginTop: "0.75rem" }}>
-          {active.map((spec) => (
-            <li
-              key={specKey(spec)}
-              style={{ display: "flex", gap: "0.35rem", alignItems: "center", border: "1px solid #ccc", borderRadius: "1rem", padding: "0.15rem 0.6rem" }}
-            >
-              <span>{spec.kind.toUpperCase()}{spec.period}</span>
-              <button
-                type="button"
-                onClick={() => onRemove(spec)}
-                aria-label={`Hapus ${spec.kind}${spec.period}`}
-                style={{ border: "none", background: "none", cursor: "pointer", fontSize: "1rem", lineHeight: 1 }}
+  function toggle(kind: IndicatorKind) {
+    const current = activeOf(kind);
+    if (current) onRemove(current);
+    else onAdd({ kind, period: INDICATOR_INFO[kind].defaultPeriod });
+  }
+
+  function setPeriod(kind: IndicatorKind, period: number) {
+    if (!Number.isFinite(period) || period < 1) return;
+    const current = activeOf(kind);
+    if (current) onRemove(current);
+    onAdd({ kind, period });
+  }
+
+  return (
+    <div className="ind-grid">
+      {INDICATOR_KINDS.map((kind) => {
+        const info = INDICATOR_INFO[kind];
+        const current = activeOf(kind);
+        const isOn = Boolean(current);
+        const period = current?.period ?? info.defaultPeriod;
+        const swatch = colorFor(`${kind.toUpperCase()}_${period}`);
+        return (
+          <div
+            key={kind}
+            className={`ind-card${isOn ? " active" : ""}`}
+            role="button"
+            tabIndex={0}
+            aria-pressed={isOn}
+            onClick={() => toggle(kind)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                toggle(kind);
+              }
+            }}
+          >
+            <div className="top">
+              <span className="name">
+                <span className="swatch" style={{ background: isOn ? swatch : "var(--border-strong)" }} />
+                {info.emoji} {info.label}
+              </span>
+              <span className="tick">{isOn ? "✓ aktif" : "+"}</span>
+            </div>
+            <div className="desc">{info.short}</div>
+
+            {isOn && (
+              <div
+                className="row"
+                style={{ marginTop: 10, alignItems: "center" }}
+                // Don't let clicks on the period control toggle the card off.
+                onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
               >
-                ×
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
+                <label className="field" style={{ flex: "1 1 auto" }}>
+                  <span style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    {info.periodLabel} <InfoTip text={info.tip} />
+                  </span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={500}
+                    value={period}
+                    onChange={(e) => setPeriod(kind, Number(e.target.value))}
+                    aria-label={`Periode ${info.label}`}
+                  />
+                </label>
+              </div>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }

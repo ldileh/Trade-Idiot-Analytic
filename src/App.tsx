@@ -3,7 +3,9 @@ import { getPrices, postIndicators } from "./api/client";
 import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import IndicatorControls from "./components/IndicatorControls";
+import PriceSummary from "./components/PriceSummary";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
+import { Card, SectionHead } from "./components/ui";
 import { seriesIsOverlay, specKey } from "./indicators";
 import type { Candle, IndicatorSpec } from "./types";
 
@@ -26,7 +28,7 @@ export default function App() {
       .then((res) => {
         if (cancelled) return;
         setCandles(res.candles);
-        if (res.candles.length === 0) setError(`Tidak ada data untuk ${query.ticker}.`);
+        if (res.candles.length === 0) setError(`Tidak ada data untuk ${query.ticker}. Cek lagi kode sahamnya, ya.`);
       })
       .catch((e: unknown) => {
         if (cancelled) return;
@@ -74,20 +76,67 @@ export default function App() {
     setSpecs((prev) => prev.filter((s) => specKey(s) !== specKey(spec)));
   }
 
+  const hasData = candles.length > 0;
+
   return (
-    <main style={{ fontFamily: "system-ui, sans-serif", padding: "1.5rem", maxWidth: 1100, margin: "0 auto" }}>
-      <h1 style={{ marginBottom: "1rem" }}>Trade-Idiot-Analytic</h1>
-      <TickerInput value={query} loading={loading} onSubmit={setQuery} />
-      <IndicatorControls active={specs} onAdd={addSpec} onRemove={removeSpec} />
-      {error && (
-        <p role="alert" style={{ color: "#b00020", marginTop: "1rem" }}>
-          {error}
-        </p>
-      )}
-      <div style={{ marginTop: "1rem", opacity: loading ? 0.5 : 1 }}>
-        <ChartPanel candles={candles} lines={lines} />
-      </div>
-      <BacktestPanel ticker={query.ticker} interval={query.interval} range={query.range} />
-    </main>
+    <div className="app">
+      <header className="app-header">
+        <span className="logo">📈</span>
+        <div>
+          <h1>Trade-Idiot-Analytic</h1>
+          <p>Belajar membaca grafik saham &amp; menguji strategi — dijelaskan dengan bahasa sederhana.</p>
+        </div>
+      </header>
+
+      {/* Langkah 1 — pilih saham */}
+      <Card>
+        <SectionHead
+          step={1}
+          title="Pilih saham yang mau dilihat"
+          subtitle="Ketik kode saham (atau klik salah satu tombol cepat), lalu atur jangka waktunya."
+        />
+        <TickerInput value={query} loading={loading} onSubmit={setQuery} />
+        {loading && <div className="loading-bar" style={{ marginTop: 14 }} />}
+        {error && <div className="alert" role="alert">{error}</div>}
+        {hasData && (
+          <div style={{ marginTop: 16 }}>
+            <PriceSummary ticker={query.ticker} candles={candles} />
+          </div>
+        )}
+      </Card>
+
+      {/* Langkah 2 — indikator + chart */}
+      <Card>
+        <SectionHead
+          step={2}
+          title="Tambah alat bantu (indikator)"
+          subtitle="Indikator adalah garis bantu di atas grafik untuk membaca arah harga. Klik kartu untuk menyalakan/mematikan — tidak perlu paham semuanya."
+        />
+        <IndicatorControls active={specs} onAdd={addSpec} onRemove={removeSpec} />
+
+        <div className="legend" style={{ marginTop: 18 }}>
+          <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b> di periode itu</span>
+          <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
+          <span className="dot muted">Tarik/geser grafik untuk menjelajah, scroll untuk zoom.</span>
+        </div>
+        <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1 }}>
+          {hasData ? (
+            <ChartPanel candles={candles} lines={lines} />
+          ) : (
+            <div className="empty">Belum ada data. Pilih saham di Langkah 1 dulu, ya. 👆</div>
+          )}
+        </div>
+      </Card>
+
+      {/* Langkah 3 — backtest */}
+      <Card>
+        <SectionHead
+          step={3}
+          title="Uji sebuah strategi (backtest)"
+          subtitle="Penasaran “kalau dari dulu pakai strategi ini, untung nggak?” Pilih strategi, jalankan, dan baca hasilnya yang sudah diterjemahkan."
+        />
+        <BacktestPanel ticker={query.ticker} interval={query.interval} range={query.range} />
+      </Card>
+    </div>
   );
 }
