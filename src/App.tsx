@@ -6,6 +6,7 @@ import IndicatorControls from "./components/IndicatorControls";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
 import RecommendationsPanel from "./components/RecommendationsPanel";
+import RRGPanel from "./components/RRGPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
@@ -27,6 +28,7 @@ export default function App() {
   const [showBacktest, setShowBacktest] = useState(false);
   const [showPatterns, setShowPatterns] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
+  const [showRRG, setShowRRG] = useState(false);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
@@ -166,6 +168,9 @@ export default function App() {
                 <button type="button" className="btn-ghost" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
                   ⭐ Rekomendasi
                 </button>
+                <button type="button" className="btn-ghost" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
+                  ⚡ Momentum
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
                   🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
                   {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
@@ -230,6 +235,23 @@ export default function App() {
           onPick={(sym) => {
             setQuery((q) => ({ ...q, ticker: sym }));
             setShowRecommendations(false);
+          }}
+        />
+      </Modal>
+
+      {/* Popup momentum relatif (RRG) — rotasi saham per sektor vs benchmark */}
+      <Modal
+        open={showRRG}
+        variant="drawer"
+        title="⚡ Analisa Momentum Relatif (RRG)"
+        subtitle="Relative Rotation Graph: posisi tiap saham dibanding benchmark sektornya. Kuadran kanan-atas (Leading) = kuat & menguat; kiri-bawah (Lagging) = lemah & melemah. Klik kode saham untuk membukanya di grafik."
+        onClose={() => setShowRRG(false)}
+      >
+        <RRGPanel
+          open={showRRG}
+          onPick={(sym) => {
+            setQuery((q) => ({ ...q, ticker: sym }));
+            setShowRRG(false);
           }}
         />
       </Modal>

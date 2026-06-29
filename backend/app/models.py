@@ -88,6 +88,25 @@ class PatternsResponse(BaseModel):
     patterns: list[Pattern]
 
 
+class RRGPoint(BaseModel):
+    """One point on a symbol's RRG path. x=RS-Ratio, y=RS-Momentum (~100)."""
+
+    x: float
+    y: float
+    time: int
+
+
+class RRGSymbol(BaseModel):
+    symbol: str
+    quadrant: Literal["leading", "weakening", "lagging", "improving"]
+    tail: list[RRGPoint]
+
+
+class RRGResponse(BaseModel):
+    benchmark: str
+    symbols: list[RRGSymbol]
+
+
 class EquityPoint(BaseModel):
     time: int
     equity: float
