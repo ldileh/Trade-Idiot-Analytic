@@ -107,6 +107,34 @@ class RRGResponse(BaseModel):
     symbols: list[RRGSymbol]
 
 
+class OwnershipComposition(BaseModel):
+    """Local/Foreign × investor-type holdings for one month-end snapshot."""
+
+    date: str
+    local: dict[str, float]   # type-suffix -> lots (IS, CP, PF, ...)
+    foreign: dict[str, float]
+    local_total: float
+    foreign_total: float
+    pct_foreign: float
+    pct_local: float
+
+
+class TopHolder(BaseModel):
+    owner: str
+    scope: Literal["local", "foreign"]
+    type: str
+    lots: float
+    pct: float
+
+
+class OwnershipResponse(BaseModel):
+    ticker: str
+    type_labels: dict[str, str]
+    series: list[OwnershipComposition]   # oldest -> newest, for the time chart
+    latest: OwnershipComposition
+    top_holders: list[TopHolder]
+
+
 class EquityPoint(BaseModel):
     time: int
     equity: float

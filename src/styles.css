@@ -259,6 +259,25 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .rrg-leg-title { font-size: 12.5px; font-weight: 700; min-width: 220px; }
 .rrg-leg-syms { display: inline-flex; gap: 6px; flex-wrap: wrap; }
 
+/* ---- ownership (KSEI) ------------------------------------------------------ */
+.own-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13.5px; font-weight: 700; margin-top: 4px; flex-wrap: wrap; }
+.own-split { font-size: 12.5px; }
+.own-foreign { color: #0d9488; font-weight: 800; }
+.own-local { color: #8b5cf6; font-weight: 800; }
+.own-table { width: 100%; border-collapse: collapse; margin-top: 12px; font-size: 13px; }
+.own-table th { text-align: left; color: var(--muted); font-size: 11.5px; text-transform: uppercase; letter-spacing: .03em; padding: 4px 8px; border-bottom: 1px solid var(--border); }
+.own-table td { padding: 7px 8px; border-bottom: 1px solid var(--border); }
+.own-table td:nth-child(2), .own-table td:nth-child(3), .own-table th:nth-child(2), .own-table th:nth-child(3) { text-align: right; white-space: nowrap; }
+.own-dot { display: inline-block; width: 9px; height: 9px; border-radius: 2px; margin-right: 6px; }
+.own-dot.local { background: #8b5cf6; }
+.own-dot.foreign { background: #0d9488; }
+.own-subtitle { font-size: 14px; font-weight: 800; margin: 18px 0 4px; }
+.bal-svg { width: 100%; height: auto; margin-top: 8px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface-2); }
+.bal-axis { fill: var(--muted); font-size: 10px; }
+.bal-legend { display: flex; gap: 16px; margin-top: 8px; font-size: 12px; color: var(--muted); }
+.bal-legend span { display: inline-flex; align-items: center; gap: 6px; }
+.bal-legend .sq { width: 12px; height: 12px; border-radius: 3px; }
+
 /* ---- chart legend ---------------------------------------------------------- */
 .legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
 .legend .dot { display: inline-flex; align-items: center; gap: 6px; }
