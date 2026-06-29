@@ -221,6 +221,28 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .pattern .p-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13.5px; }
 .pattern .p-sum { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.45; }
 
+/* ---- recommendations (ranked watchlist picks) ------------------------------ */
+.rec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.rec {
+  width: 100%; text-align: left; cursor: pointer;
+  display: flex; align-items: center; gap: 12px;
+  background: var(--surface-2); border: 1px solid var(--border); border-left-width: 4px;
+  border-radius: var(--radius-sm); padding: 10px 12px; transition: all .12s;
+}
+.rec:hover { border-color: var(--accent); transform: translateY(-2px); box-shadow: var(--shadow); }
+.rec.bullish { border-left-color: var(--up); }
+.rec.bearish { border-left-color: var(--down); }
+.rec.neutral { border-left-color: var(--border-strong); }
+.rec-rank { font-weight: 800; font-size: 13px; color: var(--muted); min-width: 26px; }
+.rec-main { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.rec-sym { font-weight: 800; font-size: 14px; }
+.rec-name { color: var(--muted); font-size: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rec-reasons { color: var(--up); font-size: 11.5px; margin-top: 2px; }
+.rec.bearish .rec-reasons, .rec.neutral .rec-reasons { color: var(--muted); }
+.rec-score { font-weight: 800; font-size: 15px; min-width: 32px; text-align: right; }
+.rec.bullish .rec-score { color: var(--up); }
+.rec.bearish .rec-score { color: var(--down); }
+
 /* ---- chart legend ---------------------------------------------------------- */
 .legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
 .legend .dot { display: inline-flex; align-items: center; gap: 6px; }
