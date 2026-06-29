@@ -7,6 +7,7 @@ import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
 import RecommendationsPanel from "./components/RecommendationsPanel";
 import RRGPanel from "./components/RRGPanel";
+import OwnershipPanel from "./components/OwnershipPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
@@ -29,6 +30,7 @@ export default function App() {
   const [showPatterns, setShowPatterns] = useState(false);
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showRRG, setShowRRG] = useState(false);
+  const [showOwnership, setShowOwnership] = useState(false);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
@@ -171,6 +173,9 @@ export default function App() {
                 <button type="button" className="btn-ghost" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
                   ⚡ Momentum
                 </button>
+                <button type="button" className="btn-ghost" onClick={() => setShowOwnership(true)} title="Kepemilikan Lokal/Asing dari KSEI (saham IDX)">
+                  💰 Kepemilikan
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
                   🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
                   {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
@@ -254,6 +259,17 @@ export default function App() {
             setShowRRG(false);
           }}
         />
+      </Modal>
+
+      {/* Popup analisa kepemilikan (KSEI) — komposisi Lokal/Asing + balance position */}
+      <Modal
+        open={showOwnership}
+        variant="drawer"
+        title="💰 Analisa Kepemilikan"
+        subtitle="Komposisi pemegang saham Lokal vs Asing per tipe investor, dan tren Balance Position bulanan — dari arsip publik KSEI. Hanya untuk saham IDX (.JK). Data diagregasi per tipe, bukan nama entitas."
+        onClose={() => setShowOwnership(false)}
+      >
+        <OwnershipPanel open={showOwnership} ticker={query.ticker} />
       </Modal>
 
       {/* Popup uji strategi (backtest) */}

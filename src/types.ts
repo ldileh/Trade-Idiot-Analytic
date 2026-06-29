@@ -99,6 +99,32 @@ export interface RRGResponse {
   symbols: RRGSymbol[];
 }
 
+export interface OwnershipComposition {
+  date: string;
+  local: Record<string, number>; // type suffix (IS/CP/PF/...) -> lots
+  foreign: Record<string, number>;
+  local_total: number;
+  foreign_total: number;
+  pct_foreign: number;
+  pct_local: number;
+}
+
+export interface TopHolder {
+  owner: string;
+  scope: "local" | "foreign";
+  type: string;
+  lots: number;
+  pct: number;
+}
+
+export interface OwnershipResponse {
+  ticker: string;
+  type_labels: Record<string, string>; // suffix -> Indonesian label
+  series: OwnershipComposition[]; // oldest -> newest
+  latest: OwnershipComposition;
+  top_holders: TopHolder[];
+}
+
 export interface EquityPoint {
   time: number;
   equity: number;

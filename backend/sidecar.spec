@@ -12,7 +12,9 @@
 from PyInstaller.utils.hooks import collect_all
 
 datas, binaries, hiddenimports = [], [], []
-for pkg in ("uvicorn", "yfinance", "ta", "backtesting", "pandas"):
+# `requests` (+ certifi CA bundle) is used directly to download KSEI ownership
+# ZIPs; collect it wholesale so the cert bundle ships with the sidecar.
+for pkg in ("uvicorn", "yfinance", "ta", "backtesting", "pandas", "requests", "certifi"):
     d, b, h = collect_all(pkg)
     datas += d
     binaries += b

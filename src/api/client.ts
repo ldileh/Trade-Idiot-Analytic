@@ -7,6 +7,7 @@ import type {
   IndicatorResponse,
   Interval,
   PatternsResponse,
+  OwnershipResponse,
   PricesResponse,
   Range,
   RRGResponse,
@@ -85,6 +86,11 @@ export function getRRG(
     tail: String(tail),
   });
   return request<RRGResponse>(`/rrg?${q}`);
+}
+
+export function getOwnership(ticker: string, months = 12): Promise<OwnershipResponse> {
+  const q = new URLSearchParams({ ticker, months: String(months) });
+  return request<OwnershipResponse>(`/ownership?${q}`);
 }
 
 export function postIndicators(body: IndicatorRequest): Promise<IndicatorResponse> {

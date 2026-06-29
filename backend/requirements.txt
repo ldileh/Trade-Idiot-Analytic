@@ -6,6 +6,8 @@ pydantic==2.10.4
 # Data
 # 0.2.51 broke against Yahoo's API (empty/JSONDecodeError responses); 1.4.x works.
 yfinance==1.4.1
+# Used directly to download KSEI ownership ZIPs (also a yfinance dependency).
+requests==2.34.2
 pandas==2.2.3
 numpy==1.26.4
 
