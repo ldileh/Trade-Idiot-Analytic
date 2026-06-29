@@ -24,7 +24,7 @@
   },
   "bundle": {
     "active": true,
-    "targets": "all",
+    "targets": ["app"],
     "icon": ["icons/icon.ico"],
     "externalBin": ["bin/backend"]
   }

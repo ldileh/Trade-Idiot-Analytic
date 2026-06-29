@@ -5,8 +5,13 @@
 # resolves to. So the order matters: build the sidecar first, then `tauri build`.
 #
 # Triggers:
-#   - push to main / PRs / manual  -> build and upload installers as artifacts
-#   - push a tag like v1.2.3        -> also publish a GitHub Release with them
+#   - push to main / PRs / manual  -> build a portable ZIP as an artifact
+#   - push a tag like v1.2.3        -> also publish a GitHub Release with it
+#
+# Portable build: with bundle targets ["app"], `tauri build` emits the
+# self-contained src-tauri/target/release/trade-idiot-analytic.exe (backend
+# sidecar embedded via externalBin) — no installers. We zip that exe; it's
+# copy-and-run, no installation needed.
 name: build
 
 on:
@@ -73,21 +78,34 @@ jobs:
       - name: Build backend sidecar
         run: python backend/build_sidecar.py
 
-      # Runs beforeBuildCommand (pnpm build = tsc + vite), then bundles
-      # MSI + NSIS installers into src-tauri/target/release/bundle/.
+      # Runs beforeBuildCommand (pnpm build = tsc + vite), then builds the
+      # self-contained release exe (targets: ["app"], no installers).
       - name: Build Tauri app
         run: pnpm tauri build
 
+      # --- package portable ------------------------------------------------
+      # The release exe is self-contained (backend sidecar embedded via
+      # externalBin), so a portable build is just that exe zipped. Copy it into
+      # a clean folder with the README, then zip — copy-and-run, no install.
+      - name: Package portable ZIP
+        shell: pwsh
+        run: |
+          $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $stage = "Trade-Idiot-Analytic-$ver-portable"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item src-tauri/target/release/trade-idiot-analytic.exe $stage/
+          if (Test-Path README.md) { Copy-Item README.md $stage/ }
+          Compress-Archive -Path "$stage/*" -DestinationPath "$stage.zip" -Force
+          "PORTABLE_ZIP=$stage.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
+
       # --- outputs ---------------------------------------------------------
-      - name: Upload installers
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: trade-idiot-analytic-windows
           retention-days: 14
           if-no-files-found: error
-          path: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*-setup.exe
+          path: ${{ env.PORTABLE_ZIP }}
 
       - name: Publish release
         if: startsWith(github.ref, 'refs/tags/v')
@@ -95,6 +113,4 @@ jobs:
         with:
           draft: false
           generate_release_notes: true
-          files: |
-            src-tauri/target/release/bundle/msi/*.msi
-            src-tauri/target/release/bundle/nsis/*-setup.exe
+          files: ${{ env.PORTABLE_ZIP }}
