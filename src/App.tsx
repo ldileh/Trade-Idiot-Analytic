@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { getPatterns, getPrices, postIndicators } from "./api/client";
 import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
@@ -12,9 +12,23 @@ import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
-import type { Candle, IndicatorSpec, PatternsResponse } from "./types";
+import type { Candle, IndicatorSpec, Interval, PatternsResponse } from "./types";
 
 const DEFAULT_QUERY: TickerQuery = { ticker: "AAPL", interval: "1d", range: "1y" };
+
+// Auto-refresh cadence keyed to the candle timeframe: short candles refresh
+// often, long ones rarely. Floored at 60s, capped at 5 min so the live price
+// still moves intraday even on daily+ charts. (Backend caches ~60s.)
+const REFRESH_MS: Record<Interval, number> = {
+  "1m": 60_000,
+  "5m": 120_000,
+  "15m": 180_000,
+  "30m": 240_000,
+  "1h": 300_000,
+  "1d": 300_000,
+  "1wk": 300_000,
+  "1mo": 300_000,
+};
 
 export default function App() {
   const [query, setQuery] = useState<TickerQuery>(DEFAULT_QUERY);
@@ -24,6 +38,8 @@ export default function App() {
   const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
   const [patternsLoading, setPatternsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [showIndicators, setShowIndicators] = useState(false);
   const [showBacktest, setShowBacktest] = useState(false);
@@ -68,20 +84,32 @@ export default function App() {
     };
   }, [query]);
 
-  // Auto-refresh: silently refetch the latest candles + patterns so the chart &
-  // price track the current market price. No loading bar, and the last good data
-  // is kept on a transient failure, so the view never flickers. (Backend ~60s cache.)
-  useEffect(() => {
-    const id = setInterval(() => {
-      getPrices(query.ticker, query.interval, query.range)
-        .then((res) => res.candles.length > 0 && setCandles(res.candles))
-        .catch(() => {});
-      getPatterns(query.ticker, query.interval, query.range)
-        .then((res) => setPatterns(res))
-        .catch(() => {});
-    }, 60_000);
-    return () => clearInterval(id);
+  // Silently refetch the latest candles + patterns so the chart & price track the
+  // current market price. No loading bar, and the last good data is kept on a
+  // transient failure, so the view never flickers. Used by both the auto-refresh
+  // timer and the manual refresh button.
+  const refresh = useCallback(() => {
+    setRefreshing(true);
+    const started = Date.now();
+    return Promise.allSettled([
+      getPrices(query.ticker, query.interval, query.range).then(
+        (res) => res.candles.length > 0 && setCandles(res.candles),
+      ),
+      getPatterns(query.ticker, query.interval, query.range).then((res) => setPatterns(res)),
+    ]).finally(() => {
+      // Keep the spinner up at least 600ms so a cached (instant) refresh is still visible.
+      setTimeout(() => {
+        setRefreshedAt(Date.now());
+        setRefreshing(false);
+      }, Math.max(0, 600 - (Date.now() - started)));
+    });
   }, [query]);
+
+  // Auto-refresh on a cadence matching the candle timeframe.
+  useEffect(() => {
+    const id = setInterval(refresh, REFRESH_MS[query.interval]);
+    return () => clearInterval(id);
+  }, [refresh, query.interval]);
 
   // Indicators follow both the query and the active spec list.
   useEffect(() => {
@@ -167,13 +195,32 @@ export default function App() {
                 )}
               </div>
               <div className="toolbar-right">
-                <button type="button" className="btn-ghost" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => refresh()}
+                  disabled={!hasData || refreshing}
+                  title={`Perbarui harga sekarang. Otomatis tiap ${Math.round(REFRESH_MS[query.interval] / 1000)} detik.${refreshedAt ? ` Terakhir: ${new Date(refreshedAt).toLocaleTimeString()}` : ""}`}
+                >
+                  <span className={refreshing ? "spin" : ""}>🔄</span> {refreshing ? "Memperbarui…" : "Perbarui"}
+                </button>
+                <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
                   ⭐ Rekomendasi
                 </button>
-                <button type="button" className="btn-ghost" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
+                <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
                   ⚡ Momentum
                 </button>
-                <button type="button" className="btn-ghost" onClick={() => setShowOwnership(true)} title="Kepemilikan Lokal/Asing dari KSEI (saham IDX)">
+                <button
+                  type="button"
+                  className="btn-ghost btn-sm"
+                  onClick={() => setShowOwnership(true)}
+                  disabled={!query.ticker.toUpperCase().endsWith(".JK")}
+                  title={
+                    query.ticker.toUpperCase().endsWith(".JK")
+                      ? "Kepemilikan Lokal/Asing dari KSEI (saham IDX)"
+                      : "Hanya tersedia untuk saham Indonesia (IDX, kode berakhiran .JK)"
+                  }
+                >
                   💰 Kepemilikan
                 </button>
                 <button type="button" className="btn-ghost" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>

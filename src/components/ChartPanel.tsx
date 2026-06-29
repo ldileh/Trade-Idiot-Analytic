@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import {
   createChart,
   type CandlestickData,
@@ -49,6 +49,38 @@ export default function ChartPanel({
   const fittedLenRef = useRef(0);
   // Active line series keyed by indicator series name, so we add/remove only what changed.
   const lineRefs = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+
+  // Pan/zoom the visible window by fractions of its current span. zoom>0 zooms in
+  // (shrinks both edges), pan shifts both edges left(<0)/right(>0).
+  const nudge = useCallback((zoom: number, pan: number) => {
+    const ts = chartRef.current?.timeScale();
+    const r = ts?.getVisibleLogicalRange();
+    if (!ts || !r) return;
+    const span = r.to - r.from;
+    ts.setVisibleLogicalRange({ from: r.from + span * (zoom + pan), to: r.to - span * (zoom - pan) });
+  }, []);
+  // Reset = snap to the latest bars, zoomed in for readability (with a little
+  // empty space on the right), rather than fitting the whole history.
+  const resetView = useCallback(() => {
+    const ts = chartRef.current?.timeScale();
+    if (!ts) return;
+    const total = fittedLenRef.current;
+    const bars = 90; // recent window width
+    const margin = 12; // future-side breathing room, like the live view
+    ts.setVisibleLogicalRange({ from: Math.max(0, total - bars), to: total + margin });
+  }, []);
+
+  // Alt+R resets the view, matching the toolbar button's hint.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === "r" || e.key === "R")) {
+        e.preventDefault();
+        resetView();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [resetView]);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -183,5 +215,18 @@ export default function ChartPanel({
   }, [patterns, candles]);
 
   // Fill the chart column (parent is flex). autoSize keeps the canvas in sync.
-  return <div ref={containerRef} style={{ width: "100%", height: "100%" }} />;
+  return (
+    <div style={{ position: "relative", width: "100%", height: "100%" }}>
+      <div ref={containerRef} style={{ width: "100%", height: "100%" }} />
+      <div className="chart-tools">
+        <button type="button" onClick={() => nudge(-0.1, 0)} title="Perkecil (zoom out)">−</button>
+        <button type="button" onClick={() => nudge(0.1, 0)} title="Perbesar (zoom in)">+</button>
+        <button type="button" onClick={() => nudge(0, -0.2)} title="Geser ke kiri">‹</button>
+        <button type="button" onClick={() => nudge(0, 0.2)} title="Geser ke kanan">›</button>
+        <button type="button" onClick={resetView} title="Reset tampilan grafik (Alt + R)">
+          ↺<span className="kbd">Alt + R</span>
+        </button>
+      </div>
+    </div>
+  );
 }
