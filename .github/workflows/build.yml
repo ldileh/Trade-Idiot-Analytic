@@ -84,18 +84,28 @@ jobs:
         run: pnpm tauri build
 
       # --- package portable ------------------------------------------------
-      # The release exe is self-contained (backend sidecar embedded via
-      # externalBin), so a portable build is just that exe zipped. Copy it into
-      # a clean folder with the README, then zip — copy-and-run, no install.
+      # A portable build needs BOTH the app exe AND the backend sidecar. With
+      # targets ["app"] (--no-bundle) Tauri does NOT copy the sidecar next to
+      # the app exe — only the installer-bundling step does that. At runtime the
+      # app resolves the sidecar as plain "backend.exe" (target triple stripped)
+      # sitting beside it. So we copy the app exe + the sidecar renamed to
+      # backend.exe, then zip them — copy-and-run, no install. Verified on a
+      # real machine: without backend.exe the app panics in the setup hook with
+      # "The system cannot find the file specified (os error 2)".
       - name: Package portable ZIP
         shell: pwsh
         run: |
           $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $rel = "src-tauri/target/release"
           $stage = "Trade-Idiot-Analytic-$ver-portable"
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
-          Copy-Item src-tauri/target/release/trade-idiot-analytic.exe $stage/
+          Copy-Item "$rel/trade-idiot-analytic.exe" $stage/
+          $sidecar = Get-ChildItem "src-tauri/bin/backend-*.exe" -ErrorAction SilentlyContinue | Select-Object -First 1
+          if (-not $sidecar) { throw "No backend-*.exe sidecar found in src-tauri/bin — portable build would crash on startup." }
+          Copy-Item $sidecar.FullName "$stage/backend.exe"
           if (Test-Path README.md) { Copy-Item README.md $stage/ }
           Compress-Archive -Path "$stage/*" -DestinationPath "$stage.zip" -Force
+          Write-Host "Packaged:"; Get-ChildItem $stage | ForEach-Object { Write-Host "  $($_.Name)" }
           "PORTABLE_ZIP=$stage.zip" | Out-File -FilePath $env:GITHUB_ENV -Append
 
       # --- outputs ---------------------------------------------------------
