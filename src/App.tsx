@@ -5,6 +5,7 @@ import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import IndicatorControls from "./components/IndicatorControls";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
+import RecommendationsPanel from "./components/RecommendationsPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
@@ -25,6 +26,7 @@ export default function App() {
   const [showIndicators, setShowIndicators] = useState(false);
   const [showBacktest, setShowBacktest] = useState(false);
   const [showPatterns, setShowPatterns] = useState(false);
+  const [showRecommendations, setShowRecommendations] = useState(false);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
@@ -161,6 +163,9 @@ export default function App() {
                 )}
               </div>
               <div className="toolbar-right">
+                <button type="button" className="btn-ghost" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
+                  ⭐ Rekomendasi
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
                   🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
                   {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
@@ -208,6 +213,25 @@ export default function App() {
         onClose={() => setShowPatterns(false)}
       >
         <PatternPanel data={patterns} loading={patternsLoading} />
+      </Modal>
+
+      {/* Popup rekomendasi — 10 saham paling bullish dari watchlist, dianalisa otomatis */}
+      <Modal
+        open={showRecommendations}
+        variant="drawer"
+        title="⭐ 10 Saham Rekomendasi"
+        subtitle="App menganalisa daftar saham likuid pakai mesin Pola yang sama, lalu menampilkan 10 yang paling condong NAIK. Klik salah satu untuk membukanya di grafik. Bahan bantu, BUKAN ajakan beli — selalu kelola risiko."
+        onClose={() => setShowRecommendations(false)}
+      >
+        <RecommendationsPanel
+          open={showRecommendations}
+          interval={query.interval}
+          range={query.range}
+          onPick={(sym) => {
+            setQuery((q) => ({ ...q, ticker: sym }));
+            setShowRecommendations(false);
+          }}
+        />
       </Modal>
 
       {/* Popup uji strategi (backtest) */}
