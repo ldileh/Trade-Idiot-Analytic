@@ -9,6 +9,7 @@ import type {
   PatternsResponse,
   PricesResponse,
   Range,
+  RRGResponse,
 } from "../types";
 
 // Browser-dev default; inside Tauri the real port comes from the shell (below).
@@ -67,6 +68,23 @@ export function getPatterns(
 ): Promise<PatternsResponse> {
   const q = new URLSearchParams({ ticker, interval, range });
   return request<PatternsResponse>(`/patterns?${q}`);
+}
+
+export function getRRG(
+  tickers: string[],
+  benchmark = "^JKSE",
+  interval: Interval = "1wk",
+  range: Range = "1y",
+  tail = 8,
+): Promise<RRGResponse> {
+  const q = new URLSearchParams({
+    tickers: tickers.join(","),
+    benchmark,
+    interval,
+    range,
+    tail: String(tail),
+  });
+  return request<RRGResponse>(`/rrg?${q}`);
 }
 
 export function postIndicators(body: IndicatorRequest): Promise<IndicatorResponse> {

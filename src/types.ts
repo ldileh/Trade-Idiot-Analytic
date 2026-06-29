@@ -80,6 +80,25 @@ export interface PatternsResponse {
   patterns: Pattern[];
 }
 
+export type RRGQuadrant = "leading" | "weakening" | "lagging" | "improving";
+
+export interface RRGPoint {
+  x: number; // RS-Ratio (~100)
+  y: number; // RS-Momentum (~100)
+  time: number;
+}
+
+export interface RRGSymbol {
+  symbol: string;
+  quadrant: RRGQuadrant;
+  tail: RRGPoint[];
+}
+
+export interface RRGResponse {
+  benchmark: string;
+  symbols: RRGSymbol[];
+}
+
 export interface EquityPoint {
   time: number;
   equity: number;
