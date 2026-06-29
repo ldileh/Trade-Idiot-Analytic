@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { postBacktest } from "../api/client";
+import { currencySymbol } from "../format";
 import type { BacktestRequest, BacktestResponse, Interval, Range, Strategy } from "../types";
 import { STAT_INFO, STRATEGY_INFO } from "../help";
 import { InfoTip } from "./ui";
@@ -127,7 +128,7 @@ export default function BacktestPanel({
           <Field name="rsi_lower" label="Batas 'kemurahan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI turun DI BAWAH angka ini → dianggap murah → beli. Umumnya 30." defaultValue={30} hidden={!isRsi} />
           <Field name="rsi_upper" label="Batas 'kemahalan' (angka RSI 0–100)" tip="Angka pada meteran RSI (0–100), bukan harga. Saat RSI naik DI ATAS angka ini → dianggap mahal → jual. Umumnya 70." defaultValue={70} hidden={!isRsi} />
           <Field name="trend_period" label="Garis tren panjang: rata-rata berapa hari?" tip="Garis tren besar dari rata-rata harga sekian hari. Klasiknya 200 hari (±10 bulan bursa). Makin besar makin kalem & jarang transaksi. Pakai rentang waktu 2–5 tahun biar garisnya sempat terbentuk." defaultValue={200} hidden={!isTrend} />
-          <Field name="cash" label="Modal awal ($)" tip="Uang awal yang dipakai untuk simulasi. Contoh: 10000 = $10.000." defaultValue={10000} />
+          <Field name="cash" label={`Modal awal (${currencySymbol(ticker)})`} tip={`Uang awal yang dipakai untuk simulasi. Contoh: 10000 = ${currencySymbol(ticker)}10.000.`} defaultValue={10000} />
           <FeeField />
         </div>
 
