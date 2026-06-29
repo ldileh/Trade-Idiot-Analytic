@@ -2,8 +2,9 @@
 // members on a Relative Rotation Graph vs the sector benchmark. Loads when the
 // drawer opens (and on sector/timeframe change). Click a symbol to open it on
 // the main chart.
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { getRRG } from "../api/client";
+import { isIDX } from "../format";
 import { SECTORS } from "../sectors";
 import type { Interval, RRGResponse, RRGQuadrant } from "../types";
 import RRGChart from "./RRGChart";
@@ -17,18 +18,26 @@ const QUADRANT_LABEL: Record<RRGQuadrant, string> = {
 
 export default function RRGPanel({
   open,
+  ticker,
   onPick,
 }: {
   open: boolean;
+  ticker: string;
   onPick: (sym: string) => void;
 }) {
-  const [sectorKey, setSectorKey] = useState(SECTORS[0].key);
+  // Show only sectors for the current ticker's market: IDX (.JK) or US.
+  const market = isIDX(ticker) ? "id" : "us";
+  const sectors = useMemo(() => SECTORS.filter((s) => s.market === market), [market]);
+
+  const [sectorKey, setSectorKey] = useState(sectors[0].key);
   const [timeframe, setTimeframe] = useState<Interval>("1wk");
   const [data, setData] = useState<RRGResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const sector = SECTORS.find((s) => s.key === sectorKey) ?? SECTORS[0];
+  // When the market changes (different ticker), the old sectorKey may be gone —
+  // fall back to the first sector of the new market.
+  const sector = sectors.find((s) => s.key === sectorKey) ?? sectors[0];
 
   useEffect(() => {
     if (!open) return;
@@ -50,8 +59,8 @@ export default function RRGPanel({
   return (
     <div>
       <div className="rrg-controls">
-        <select value={sectorKey} onChange={(e) => setSectorKey(e.target.value)} aria-label="Pilih sektor">
-          {SECTORS.map((s) => (
+        <select value={sector.key} onChange={(e) => setSectorKey(e.target.value)} aria-label="Pilih sektor">
+          {sectors.map((s) => (
             <option key={s.key} value={s.key}>{s.label}</option>
           ))}
         </select>
