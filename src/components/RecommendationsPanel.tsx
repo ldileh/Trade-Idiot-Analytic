@@ -2,21 +2,26 @@
 // the 10 most bullish picks, ranked. Click a row to load that stock on the main
 // chart. Loads when first opened (and on interval/range change), not on mount.
 import { useEffect, useState } from "react";
+import { isIDX } from "../format";
 import { getRecommendations, type Recommendation } from "../recommendations";
 import type { Interval, Range } from "../types";
 import { KIND_EMOJI } from "./PatternPanel";
 
 export default function RecommendationsPanel({
   open,
+  ticker,
   interval,
   range,
   onPick,
 }: {
   open: boolean;
+  ticker: string;
   interval: Interval;
   range: Range;
   onPick: (sym: string) => void;
 }) {
+  // Follow the current ticker's market: IDX (.JK) picks IDX blue chips, else US.
+  const market = isIDX(ticker) ? "id" : "us";
   const [recs, setRecs] = useState<Recommendation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -28,14 +33,14 @@ export default function RecommendationsPanel({
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getRecommendations(interval, range, 10)
+    getRecommendations(market, interval, range, 10)
       .then((r) => !cancelled && setRecs(r))
       .catch((e: unknown) => !cancelled && setError(e instanceof Error ? e.message : String(e)))
       .finally(() => !cancelled && setLoading(false));
     return () => {
       cancelled = true;
     };
-  }, [open, interval, range]);
+  }, [open, market, interval, range]);
 
   return (
     <div>

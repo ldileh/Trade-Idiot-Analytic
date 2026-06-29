@@ -235,6 +235,7 @@ export default function App() {
       >
         <RecommendationsPanel
           open={showRecommendations}
+          ticker={query.ticker}
           interval={query.interval}
           range={query.range}
           onPick={(sym) => {
@@ -254,6 +255,7 @@ export default function App() {
       >
         <RRGPanel
           open={showRRG}
+          ticker={query.ticker}
           onPick={(sym) => {
             setQuery((q) => ({ ...q, ticker: sym }));
             setShowRRG(false);
