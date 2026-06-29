@@ -5,32 +5,30 @@
 import { getPatterns } from "./api/client";
 import type { Interval, PatternKind, PatternsResponse, Range } from "./types";
 
-// Candidate universe the app analyses. A curated mix of liquid IDX blue chips
-// and large-cap US names — enough breadth to surface 10 picks, small enough to
-// stay fast (each is one /patterns call against the ~60s-cached backend).
+// Candidate universe the app analyses: liquid IDX blue chips. IDX-only, to keep
+// the app focused on the Indonesian market. Broad enough to surface 10 picks,
+// small enough to stay fast (each is one /patterns call, ~60s-cached backend).
 export const WATCHLIST: { sym: string; name: string }[] = [
-  // IDX blue chips
   { sym: "BBCA.JK", name: "Bank Central Asia" },
   { sym: "BBRI.JK", name: "Bank Rakyat Indonesia" },
   { sym: "BMRI.JK", name: "Bank Mandiri" },
   { sym: "BBNI.JK", name: "Bank Negara Indonesia" },
+  { sym: "BRIS.JK", name: "Bank Syariah Indonesia" },
   { sym: "TLKM.JK", name: "Telkom Indonesia" },
   { sym: "ASII.JK", name: "Astra International" },
   { sym: "UNVR.JK", name: "Unilever Indonesia" },
   { sym: "ICBP.JK", name: "Indofood CBP" },
+  { sym: "INDF.JK", name: "Indofood Sukses Makmur" },
   { sym: "ANTM.JK", name: "Aneka Tambang" },
   { sym: "ADRO.JK", name: "Alamtri Resources" },
+  { sym: "MDKA.JK", name: "Merdeka Copper Gold" },
+  { sym: "PGAS.JK", name: "Perusahaan Gas Negara" },
   { sym: "GOTO.JK", name: "GoTo Gojek Tokopedia" },
   { sym: "AMRT.JK", name: "Sumber Alfaria Trijaya" },
-  // US large caps
-  { sym: "AAPL", name: "Apple" },
-  { sym: "MSFT", name: "Microsoft" },
-  { sym: "GOOGL", name: "Alphabet" },
-  { sym: "AMZN", name: "Amazon" },
-  { sym: "NVDA", name: "NVIDIA" },
-  { sym: "TSLA", name: "Tesla" },
-  { sym: "META", name: "Meta Platforms" },
-  { sym: "JPM", name: "JPMorgan Chase" },
+  { sym: "KLBF.JK", name: "Kalbe Farma" },
+  { sym: "CPIN.JK", name: "Charoen Pokphand Indonesia" },
+  { sym: "JSMR.JK", name: "Jasa Marga" },
+  { sym: "SMGR.JK", name: "Semen Indonesia" },
 ];
 
 export interface Recommendation {

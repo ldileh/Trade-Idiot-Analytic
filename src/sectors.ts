@@ -1,6 +1,6 @@
 // Sector groups for the Relative Rotation Graph. Each sector lists its member
-// symbols and the benchmark to measure relative strength against. IDX sectors
-// use the IDX Composite (^JKSE) as benchmark; US uses the S&P 500 (^GSPC).
+// symbols and the benchmark to measure relative strength against. IDX-only:
+// every sector is benchmarked to the IDX Composite (^JKSE / IHSG).
 export interface Sector {
   key: string;
   label: string;
@@ -26,11 +26,5 @@ export const SECTORS: Sector[] = [
     label: "IDX Energy & Mining",
     benchmark: "^JKSE",
     symbols: ["ADRO.JK", "PTBA.JK", "ITMG.JK", "ANTM.JK", "INCO.JK", "MDKA.JK", "PGAS.JK", "MEDC.JK"],
-  },
-  {
-    key: "us-megacap",
-    label: "US Mega Cap Tech",
-    benchmark: "^GSPC",
-    symbols: ["AAPL", "MSFT", "GOOGL", "AMZN", "NVDA", "TSLA", "META"],
   },
 ];
