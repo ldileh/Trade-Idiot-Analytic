@@ -213,15 +213,6 @@ export default function App() {
                   <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
                   <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
                 </span>
-                {specs.length > 0 && (
-                  <span className="chips">
-                    {specs.map((s) => (
-                      <button key={specKey(s)} type="button" className="chip active" onClick={() => removeSpec(s)} title="Klik untuk matikan">
-                        {INDICATOR_INFO[s.kind].emoji} {INDICATOR_INFO[s.kind].label} <span className="x">✕</span>
-                      </button>
-                    ))}
-                  </span>
-                )}
               </div>
               <div className="toolbar-right">
                 <button
@@ -234,38 +225,50 @@ export default function App() {
                 >
                   <span className={refreshing ? "spin" : ""} aria-hidden style={{ display: "inline-block" }}>↻</span>
                 </button>
-                <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
-                  ⭐ Rekomendasi
-                </button>
-                <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
-                  ⚡ Momentum
-                </button>
-                <button
-                  type="button"
-                  className="btn-ghost btn-sm"
-                  onClick={() => setShowOwnership(true)}
-                  disabled={!query.ticker.toUpperCase().endsWith(".JK")}
-                  title={
-                    query.ticker.toUpperCase().endsWith(".JK")
-                      ? "Kepemilikan Lokal/Asing dari KSEI (saham IDX)"
-                      : "Hanya tersedia untuk saham Indonesia (IDX, kode berakhiran .JK)"
-                  }
-                >
-                  💰 Kepemilikan
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
-                  🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
-                  {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => setShowFundamentals(true)} disabled={!hasData} title={fundamentals?.bias_text}>
-                  📒 Fundamental {fundamentals && <span className="count">{fundamentals.score}</span>}
-                </button>
-                <button type="button" className="btn-ghost" onClick={() => setShowIndicators(true)} disabled={!hasData}>
-                  📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
-                </button>
-                <button type="button" className="btn-primary" onClick={() => setShowBacktest(true)} disabled={!hasData}>
-                  🧪 Uji strategi
-                </button>
+                <span className="tb-sep" />
+                {/* Grup Analisa */}
+                <span className="tb-group">
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
+                    ⭐ Rekomendasi
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
+                    ⚡ Momentum
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
+                    🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
+                    {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowFundamentals(true)} disabled={!hasData} title={fundamentals?.bias_text}>
+                    📒 Fundamental {fundamentals && <span className="count">{fundamentals.score}</span>}
+                  </button>
+                </span>
+                <span className="tb-sep" />
+                {/* Grup Data pasar (IDX) */}
+                <span className="tb-group">
+                  <button
+                    type="button"
+                    className="btn-ghost btn-sm"
+                    onClick={() => setShowOwnership(true)}
+                    disabled={!query.ticker.toUpperCase().endsWith(".JK")}
+                    title={
+                      query.ticker.toUpperCase().endsWith(".JK")
+                        ? "Kepemilikan Lokal/Asing dari KSEI (saham IDX)"
+                        : "Hanya tersedia untuk saham Indonesia (IDX, kode berakhiran .JK)"
+                    }
+                  >
+                    💰 Kepemilikan
+                  </button>
+                </span>
+                <span className="tb-sep" />
+                {/* Grup Alat & strategi */}
+                <span className="tb-group">
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowIndicators(true)} disabled={!hasData}>
+                    📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
+                  </button>
+                  <button type="button" className="btn-primary btn-sm" onClick={() => setShowBacktest(true)} disabled={!hasData}>
+                    🧪 Uji strategi
+                  </button>
+                </span>
               </div>
             </div>
 
@@ -276,6 +279,16 @@ export default function App() {
                 <div className="empty">Belum ada data. Cari & pilih saham di sebelah kiri dulu, ya. 👈</div>
               )}
             </div>
+            {specs.length > 0 && (
+              <div className="active-indicators">
+                <span className="muted" style={{ fontSize: 12, fontWeight: 600 }}>Indikator aktif:</span>
+                {specs.map((s) => (
+                  <button key={specKey(s)} type="button" className="chip active" onClick={() => removeSpec(s)} title="Klik untuk matikan">
+                    {INDICATOR_INFO[s.kind].emoji} {INDICATOR_INFO[s.kind].label} <span className="x">✕</span>
+                  </button>
+                ))}
+              </div>
+            )}
             <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
               Tarik/geser grafik untuk menjelajah, scroll untuk zoom.
             </p>

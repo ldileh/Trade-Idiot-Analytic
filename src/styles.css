@@ -172,18 +172,20 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   font-size: 11px; font-weight: 800; display: grid; place-items: center;
   border: none; cursor: help; padding: 0;
 }
+/* Left-anchored (opens rightward) so it never clips off the left edge of a
+   narrow panel. The dot sits left in its label, so there's always room right. */
 .tip > .tip-body {
-  position: absolute; bottom: calc(100% + 8px); left: 50%; transform: translateX(-50%) translateY(4px);
-  width: max-content; max-width: 260px;
+  position: absolute; bottom: calc(100% + 8px); left: -8px; transform: translateY(4px);
+  width: max-content; max-width: min(260px, calc(100vw - 32px));
   background: #1c2433; color: #f1f4ff; font-size: 12.5px; font-weight: 500; line-height: 1.45;
   padding: 9px 11px; border-radius: 10px; box-shadow: var(--shadow-hover);
   opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 30; text-align: left;
 }
 .tip > .tip-body::after {
-  content: ""; position: absolute; top: 100%; left: 50%; transform: translateX(-50%);
+  content: ""; position: absolute; top: 100%; left: 14px;
   border: 6px solid transparent; border-top-color: #1c2433;
 }
-.tip:hover > .tip-body, .tip:focus-within > .tip-body { opacity: 1; transform: translateX(-50%) translateY(0); }
+.tip:hover > .tip-body, .tip:focus-within > .tip-body { opacity: 1; transform: translateY(0); }
 
 /* ---- price summary --------------------------------------------------------- */
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
@@ -373,11 +375,17 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 /* ---- chart toolbar --------------------------------------------------------- */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
 .toolbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
-.toolbar-right { display: flex; gap: 6px; flex: none; }
+.toolbar-right { display: flex; align-items: center; gap: 6px; flex: none; flex-wrap: wrap; }
 /* Compact every toolbar button so the row fits without wrapping. */
 .toolbar-right button { padding: 6px 10px; font-size: 12.5px; font-weight: 600; }
 /* Refresh is icon-only to save space. */
 .toolbar-right .btn-icon { padding: 6px 9px; font-size: 15px; line-height: 1; }
+/* Buttons of the same purpose stay together; a thin rule separates groups. */
+.tb-group { display: inline-flex; gap: 6px; }
+.tb-sep { width: 1px; align-self: stretch; min-height: 22px; background: var(--border-strong); margin: 0 2px; }
+
+/* Active indicators shown below the chart instead of crowding the toolbar. */
+.active-indicators { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .toolbar-right .count {
   display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px;
   margin-left: 4px; background: var(--accent); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 800;
