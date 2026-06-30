@@ -202,7 +202,7 @@ export default function App() {
                   disabled={!hasData || refreshing}
                   title={`Perbarui harga sekarang. Otomatis tiap ${Math.round(REFRESH_MS[query.interval] / 1000)} detik.${refreshedAt ? ` Terakhir: ${new Date(refreshedAt).toLocaleTimeString()}` : ""}`}
                 >
-                  <span className={refreshing ? "spin" : ""}>🔄</span> {refreshing ? "Memperbarui…" : "Perbarui"}
+                  <span className={refreshing ? "spin" : ""} aria-hidden style={{ display: "inline-block" }}>↻</span> {refreshing ? "Memperbarui…" : "Perbarui"}
                 </button>
                 <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
                   ⭐ Rekomendasi
