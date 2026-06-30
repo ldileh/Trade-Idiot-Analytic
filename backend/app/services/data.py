@@ -63,11 +63,14 @@ def _realtime_close(ticker: str) -> float | None:
 
 
 def _normalize(df: pd.DataFrame) -> pd.DataFrame:
-    """Return a clean OHLCV frame with a tz-naive DatetimeIndex.
+    """Return a clean OHLCV frame with a tz-aware (UTC) DatetimeIndex.
 
     yfinance may return a MultiIndex column frame (when given a list of tickers)
-    or tz-aware timestamps. Normalize both so downstream code can rely on a flat
-    schema: columns Open/High/Low/Close/Volume, ascending DatetimeIndex.
+    or tz-aware timestamps (intraday bars come in US/Eastern). We keep the index
+    tz-aware and normalized to UTC so `ts.timestamp()` downstream yields the true
+    epoch regardless of the server's local timezone — dropping the tz here would
+    reinterpret the wall-clock as machine-local and shift every intraday bar.
+    Daily+ bars are tz-naive midnight; localize them to UTC for the same reason.
     """
     if isinstance(df.columns, pd.MultiIndex):
         # Single ticker requested -> drop the ticker level.
@@ -80,8 +83,9 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
         raise DataError(f"Price data missing columns: {missing}")
 
     df = df[keep].dropna(how="any")
-    if df.index.tz is not None:
-        df.index = df.index.tz_localize(None)
+    df.index = (
+        df.index.tz_convert("UTC") if df.index.tz is not None else df.index.tz_localize("UTC")
+    )
     df = df.sort_index()
     return df
 
@@ -89,12 +93,11 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
 def _session_flags(idx: pd.DatetimeIndex) -> list[bool]:
     """True where a bar falls outside US regular hours (09:30–16:00 ET).
 
-    yfinance returns tz-naive UTC for intraday bars; convert to US/Eastern and
-    compare against the regular session. Pre/post bars are everything else on a
-    weekday. (Daily+ bars never carry an extended session, so callers only ask
-    this for intraday US tickers.)
+    `idx` is tz-aware UTC (see _normalize). Convert to US/Eastern and compare
+    against the regular session; pre/post bars are everything else. (Callers
+    only ask this for intraday US tickers.)
     """
-    et = idx.tz_localize("UTC").tz_convert("America/New_York")
+    et = idx.tz_convert("America/New_York")
     mins = et.hour * 60 + et.minute
     regular = (mins >= 9 * 60 + 30) & (mins < 16 * 60)
     return [not r for r in regular]
@@ -173,8 +176,11 @@ if __name__ == "__main__":
     _FINNHUB_KEY = "dummy"
     assert _realtime_close("BBCA.JK") is None  # IDX -> skipped, no call
 
+    # _session_flags takes a tz-aware UTC index (as _normalize produces).
     # 14:00 & 21:00 UTC = 09:00 (pre) & 16:00 (post) ET on a winter weekday;
     # 15:00 UTC = 10:00 ET = regular.
-    idx = pd.to_datetime(["2024-01-08 14:00", "2024-01-08 15:00", "2024-01-08 21:00"])
+    idx = pd.to_datetime(
+        ["2024-01-08 14:00", "2024-01-08 15:00", "2024-01-08 21:00"]
+    ).tz_localize("UTC")
     assert _session_flags(idx) == [True, False, True]
     print("data.py self-check OK")
