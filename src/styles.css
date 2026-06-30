@@ -301,7 +301,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   background: #ef4444; color: #fff;
 }
 .spin { display: inline-block; animation: spin .5s linear infinite; }
-@keyframes spin { to { transform: rotate(-360deg); } }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 /* ---- strategy picker ------------------------------------------------------- */
 .strat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
