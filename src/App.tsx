@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { getPatterns, getPrices, postIndicators } from "./api/client";
+import { getFundamentals, getPatterns, getPrices, postIndicators } from "./api/client";
 import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
+import FundamentalsPanel from "./components/FundamentalsPanel";
 import IndicatorControls from "./components/IndicatorControls";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
@@ -12,7 +13,7 @@ import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
-import type { Candle, IndicatorSpec, Interval, PatternsResponse } from "./types";
+import type { Candle, FundamentalsResponse, IndicatorSpec, Interval, PatternsResponse } from "./types";
 
 const DEFAULT_QUERY: TickerQuery = { ticker: "AAPL", interval: "1d", range: "1y" };
 
@@ -34,9 +35,12 @@ export default function App() {
   const [query, setQuery] = useState<TickerQuery>(DEFAULT_QUERY);
   const [specs, setSpecs] = useState<IndicatorSpec[]>([]);
   const [candles, setCandles] = useState<Candle[]>([]);
+  const [source, setSource] = useState<"yahoo" | "finnhub">("yahoo");
   const [lines, setLines] = useState<SeriesLine[]>([]);
   const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
   const [patternsLoading, setPatternsLoading] = useState(false);
+  const [fundamentals, setFundamentals] = useState<FundamentalsResponse | null>(null);
+  const [fundamentalsLoading, setFundamentalsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [refreshedAt, setRefreshedAt] = useState<number | null>(null);
@@ -47,16 +51,18 @@ export default function App() {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showRRG, setShowRRG] = useState(false);
   const [showOwnership, setShowOwnership] = useState(false);
+  const [showFundamentals, setShowFundamentals] = useState(false);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
-    getPrices(query.ticker, query.interval, query.range)
+    getPrices(query.ticker, query.interval, query.range, query.prepost, query.realtime)
       .then((res) => {
         if (cancelled) return;
         setCandles(res.candles);
+        setSource(res.source);
         if (res.candles.length === 0) setError(`Tidak ada data untuk ${query.ticker}. Cek lagi kode sahamnya, ya.`);
       })
       .catch((e: unknown) => {
@@ -84,6 +90,21 @@ export default function App() {
     };
   }, [query]);
 
+  // Fundamentals depend only on the ticker (not interval/range), so refetch
+  // just when the ticker changes.
+  useEffect(() => {
+    let cancelled = false;
+    setFundamentalsLoading(true);
+    setFundamentals(null);
+    getFundamentals(query.ticker)
+      .then((res) => !cancelled && setFundamentals(res))
+      .catch(() => !cancelled && setFundamentals(null))
+      .finally(() => !cancelled && setFundamentalsLoading(false));
+    return () => {
+      cancelled = true;
+    };
+  }, [query.ticker]);
+
   // Silently refetch the latest candles + patterns so the chart & price track the
   // current market price. No loading bar, and the last good data is kept on a
   // transient failure, so the view never flickers. Used by both the auto-refresh
@@ -92,8 +113,11 @@ export default function App() {
     setRefreshing(true);
     const started = Date.now();
     return Promise.allSettled([
-      getPrices(query.ticker, query.interval, query.range).then(
-        (res) => res.candles.length > 0 && setCandles(res.candles),
+      getPrices(query.ticker, query.interval, query.range, query.prepost, query.realtime).then(
+        (res) => {
+          if (res.candles.length > 0) setCandles(res.candles);
+          setSource(res.source);
+        },
       ),
       getPatterns(query.ticker, query.interval, query.range).then((res) => setPatterns(res)),
     ]).finally(() => {
@@ -153,7 +177,9 @@ export default function App() {
       <header className="app-header">
         <span className="logo">📈</span>
         <div>
-          <h1>Trade-Idiot-Analytic</h1>
+          <h1>
+            Trade-Idiot-Analytic <span className="app-version">v{__APP_VERSION__}</span>
+          </h1>
           <p>Belajar membaca grafik saham &amp; menguji strategi — dijelaskan dengan bahasa sederhana.</p>
         </div>
       </header>
@@ -169,6 +195,9 @@ export default function App() {
             {hasData && (
               <div style={{ marginTop: 14 }}>
                 <PriceSummary ticker={query.ticker} candles={candles} />
+                <span className={`source-badge ${source}`}>
+                  {source === "finnhub" ? "● Finnhub realtime" : "● Yahoo Finance (±15 mnt)"}
+                </span>
               </div>
             )}
           </Card>
@@ -227,6 +256,9 @@ export default function App() {
                   🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
                   {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
                 </button>
+                <button type="button" className="btn-ghost" onClick={() => setShowFundamentals(true)} disabled={!hasData} title={fundamentals?.bias_text}>
+                  📒 Fundamental {fundamentals && <span className="count">{fundamentals.score}</span>}
+                </button>
                 <button type="button" className="btn-ghost" onClick={() => setShowIndicators(true)} disabled={!hasData}>
                   📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
                 </button>
@@ -270,6 +302,17 @@ export default function App() {
         onClose={() => setShowPatterns(false)}
       >
         <PatternPanel data={patterns} loading={patternsLoading} />
+      </Modal>
+
+      {/* Popup fundamental — rasio valuasi/kesehatan/pertumbuhan + skor sehat */}
+      <Modal
+        open={showFundamentals}
+        variant="drawer"
+        title="📒 Analisa Fundamental"
+        subtitle="Rasio keuangan perusahaan (valuasi, kesehatan, pertumbuhan) dengan skor sehat & penjelasan sederhana. Bahan bantu menilai 'isi' perusahaan, bukan grafiknya. BUKAN ajakan beli."
+        onClose={() => setShowFundamentals(false)}
+      >
+        <FundamentalsPanel data={fundamentals} loading={fundamentalsLoading} />
       </Modal>
 
       {/* Popup rekomendasi — 10 saham paling bullish dari watchlist, dianalisa otomatis */}

@@ -3,6 +3,7 @@
 import type {
   BacktestRequest,
   BacktestResponse,
+  FundamentalsResponse,
   IndicatorRequest,
   IndicatorResponse,
   Interval,
@@ -57,8 +58,12 @@ export function getPrices(
   ticker: string,
   interval: Interval = "1d",
   range: Range = "1y",
+  prepost = false,
+  realtime = true,
 ): Promise<PricesResponse> {
   const q = new URLSearchParams({ ticker, interval, range });
+  if (prepost) q.set("prepost", "true");
+  if (!realtime) q.set("realtime", "false");
   return request<PricesResponse>(`/prices?${q}`);
 }
 
@@ -86,6 +91,11 @@ export function getRRG(
     tail: String(tail),
   });
   return request<RRGResponse>(`/rrg?${q}`);
+}
+
+export function getFundamentals(ticker: string): Promise<FundamentalsResponse> {
+  const q = new URLSearchParams({ ticker });
+  return request<FundamentalsResponse>(`/fundamentals?${q}`);
 }
 
 export function getOwnership(ticker: string, months = 12): Promise<OwnershipResponse> {

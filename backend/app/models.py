@@ -19,12 +19,14 @@ class Candle(BaseModel):
     low: float
     close: float
     volume: float
+    extended: bool = False  # bar falls outside US regular hours (pre/post-market)
 
 
 class PricesResponse(BaseModel):
     ticker: str
     interval: str
     range: str
+    source: Literal["yahoo", "finnhub"] = "yahoo"  # where the latest price came from
     candles: list[Candle]
 
 
@@ -133,6 +135,28 @@ class OwnershipResponse(BaseModel):
     series: list[OwnershipComposition]   # oldest -> newest, for the time chart
     latest: OwnershipComposition
     top_holders: list[TopHolder]
+
+
+class FundamentalMetric(BaseModel):
+    """One fundamental ratio with its plain-language verdict."""
+
+    key: str
+    label: str
+    group: str  # "Valuasi" | "Kesehatan" | "Pertumbuhan"
+    tip: str
+    value: float | None  # None = field absent for this ticker
+    display: str
+    verdict: int  # +1 good, 0 neutral, -1 bad
+    verdict_text: str
+
+
+class FundamentalsResponse(BaseModel):
+    ticker: str
+    name: str
+    score: int  # 0–100 composite health score
+    bias: Literal["good", "neutral", "bad"]
+    bias_text: str
+    metrics: list[FundamentalMetric]
 
 
 class EquityPoint(BaseModel):

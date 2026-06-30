@@ -15,12 +15,14 @@ export interface Candle {
   low: number;
   close: number;
   volume: number;
+  extended?: boolean; // bar is pre/post-market (US intraday only)
 }
 
 export interface PricesResponse {
   ticker: string;
   interval: string;
   range: string;
+  source: "yahoo" | "finnhub"; // where the latest price came from
   candles: Candle[];
 }
 
@@ -123,6 +125,26 @@ export interface OwnershipResponse {
   series: OwnershipComposition[]; // oldest -> newest
   latest: OwnershipComposition;
   top_holders: TopHolder[];
+}
+
+export interface FundamentalMetric {
+  key: string;
+  label: string;
+  group: string; // "Valuasi" | "Kesehatan" | "Pertumbuhan"
+  tip: string;
+  value: number | null;
+  display: string;
+  verdict: -1 | 0 | 1;
+  verdict_text: string;
+}
+
+export interface FundamentalsResponse {
+  ticker: string;
+  name: string;
+  score: number; // 0–100
+  bias: "good" | "neutral" | "bad";
+  bias_text: string;
+  metrics: FundamentalMetric[];
 }
 
 export interface EquityPoint {

@@ -211,7 +211,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .ind-card .tick { color: var(--accent); font-weight: 800; }
 
 /* ---- detected patterns ----------------------------------------------------- */
-.pattern-list { display: grid; gap: 8px; }
+.pattern-list, .fund-list { display: grid; gap: 8px; }
 .pattern {
   background: var(--surface-2); border: 1px solid var(--border); border-left-width: 4px;
   border-radius: var(--radius-sm); padding: 10px 12px;
@@ -357,6 +357,18 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .combo-item .muted { font-weight: 500; font-size: 13px; }
 .fav-star { font-size: 15px; line-height: 1; opacity: .85; }
 .fav-star:hover { opacity: 1; transform: scale(1.15); }
+.prepost-toggle {
+  display: flex; align-items: center; gap: 8px;
+  margin: 10px 0 0; font-size: 13px; font-weight: 600; color: var(--text); cursor: pointer;
+}
+.prepost-toggle input { width: 16px; height: 16px; cursor: pointer; }
+.source-badge {
+  display: inline-block; margin-top: 8px; padding: 2px 8px;
+  font-size: 11px; font-weight: 600; border-radius: 999px;
+}
+.source-badge.finnhub { background: #dcfce7; color: #15803d; }
+.source-badge.yahoo { background: #f1f5f9; color: #64748b; }
+.app-version { font-size: 12px; font-weight: 600; color: var(--muted); vertical-align: middle; }
 
 /* ---- chart toolbar --------------------------------------------------------- */
 .toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
