@@ -1,18 +1,48 @@
 // Small presentational building blocks shared across the app: a hover/focus
 // tooltip for plain-language help, a card wrapper, a numbered step header, and
 // a centered popup (modal) used for the indicator and backtest panels.
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 
 // A "?" dot that reveals a plain explanation on hover or keyboard focus.
+// The bubble is positioned with `fixed` (computed from the dot's screen rect)
+// so it's never clipped by the scrolling side panel's `overflow` and always
+// sits above other content. It opens below the dot, or above if there's no room.
 export function InfoTip({ text }: { text: string }) {
+  const dotRef = useRef<HTMLButtonElement>(null);
+  const [pos, setPos] = useState<{ left: number; top: number; below: boolean } | null>(null);
+
+  function show() {
+    const r = dotRef.current?.getBoundingClientRect();
+    if (!r) return;
+    const below = r.bottom + 120 < window.innerHeight; // enough room under the dot?
+    // Keep the bubble within the viewport's right edge (max bubble width ~280).
+    const left = Math.min(r.left, window.innerWidth - 292);
+    setPos({ left, top: below ? r.bottom + 8 : r.top - 8, below });
+  }
+  const hide = () => setPos(null);
+
   return (
-    <span className="tip">
-      <button type="button" className="tip-dot" aria-label="Penjelasan" tabIndex={0}>
+    <span className="tip" onMouseEnter={show} onMouseLeave={hide}>
+      <button
+        ref={dotRef}
+        type="button"
+        className="tip-dot"
+        aria-label="Penjelasan"
+        tabIndex={0}
+        onFocus={show}
+        onBlur={hide}
+      >
         ?
       </button>
-      <span role="tooltip" className="tip-body">
-        {text}
-      </span>
+      {pos && (
+        <span
+          role="tooltip"
+          className={`tip-body ${pos.below ? "below" : "above"}`}
+          style={{ left: pos.left, top: pos.top }}
+        >
+          {text}
+        </span>
+      )}
     </span>
   );
 }

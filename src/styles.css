@@ -172,20 +172,17 @@ button:disabled { opacity: .55; cursor: not-allowed; }
   font-size: 11px; font-weight: 800; display: grid; place-items: center;
   border: none; cursor: help; padding: 0;
 }
-/* Left-anchored (opens rightward) so it never clips off the left edge of a
-   narrow panel. The dot sits left in its label, so there's always room right. */
-.tip > .tip-body {
-  position: absolute; bottom: calc(100% + 8px); left: -8px; transform: translateY(4px);
-  width: max-content; max-width: min(260px, calc(100vw - 32px));
+/* Positioned with `fixed` from JS (see InfoTip) so it escapes the scrolling
+   side panel's overflow clip and always renders above other content. */
+.tip-body {
+  position: fixed; z-index: 200; pointer-events: none;
+  width: max-content; max-width: min(280px, calc(100vw - 24px));
   background: #1c2433; color: #f1f4ff; font-size: 12.5px; font-weight: 500; line-height: 1.45;
-  padding: 9px 11px; border-radius: 10px; box-shadow: var(--shadow-hover);
-  opacity: 0; pointer-events: none; transition: opacity .15s, transform .15s; z-index: 30; text-align: left;
+  padding: 9px 11px; border-radius: 10px; box-shadow: var(--shadow-hover); text-align: left;
 }
-.tip > .tip-body::after {
-  content: ""; position: absolute; top: 100%; left: 14px;
-  border: 6px solid transparent; border-top-color: #1c2433;
-}
-.tip:hover > .tip-body, .tip:focus-within > .tip-body { opacity: 1; transform: translateY(0); }
+/* `top` is the dot's edge; shift the bubble onto the correct side of it. */
+.tip-body.below { transform: translateX(-14px); }
+.tip-body.above { transform: translateX(-14px) translateY(-100%); }
 
 /* ---- price summary --------------------------------------------------------- */
 .summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
