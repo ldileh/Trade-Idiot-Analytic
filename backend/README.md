@@ -25,6 +25,17 @@ python3.12 -m venv .venv
 
 Then open http://127.0.0.1:8756/docs for the interactive API.
 
+### Realtime US quotes (optional)
+
+yfinance is ~15 min delayed for the in-progress bar. Set a free
+[Finnhub](https://finnhub.io) key to make the latest US price realtime — the
+latest candle's close is patched with Finnhub's `/quote`. Unset = yfinance only
+(unchanged); IDX `.JK` tickers always use yfinance (Finnhub has no IDX realtime).
+
+```bash
+FINNHUB_API_KEY=your_key_here .venv/Scripts/python main.py
+```
+
 ## Endpoints
 
 | Method | Path          | Purpose                                             |

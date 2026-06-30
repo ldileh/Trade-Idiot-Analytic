@@ -8,10 +8,20 @@ sidecar, never exposed on the network.
 from __future__ import annotations
 
 import os
+import sys
+from pathlib import Path
 
 import uvicorn
+from dotenv import load_dotenv
 
-from app import create_app
+# Load .env before importing the app, so module-level os.getenv reads (e.g.
+# FINNHUB_API_KEY in services.data) pick the key up. Look beside the executable
+# first so a portable build reads a .env the user dropped next to the app exe;
+# when frozen, sys.executable is the sidecar exe. Fall back to cwd-walk for dev.
+_exe_env = Path(sys.executable).resolve().parent / ".env"
+load_dotenv(_exe_env if _exe_env.exists() else None)
+
+from app import create_app  # noqa: E402  (import after env is loaded)
 
 app = create_app()
 

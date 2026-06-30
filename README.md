@@ -20,6 +20,24 @@ TradingView yang open-source (**lightweight-charts**) — bukan scraping `tradin
 
 ---
 
+## Harga realtime US (opsional)
+
+Secara default harga saham US tertunda ~15 menit (batasan sumber gratis yfinance;
+saham IDX `.JK` selalu tertunda). Untuk membuat **harga US realtime**:
+
+1. Daftar gratis di [finnhub.io](https://finnhub.io/register) dan salin API key-nya.
+2. Buat file bernama `.env` **di folder yang sama dengan aplikasinya** (`.exe`), isi:
+   ```ini
+   FINNHUB_API_KEY=key_kamu_di_sini
+   ```
+3. Jalankan ulang aplikasi.
+
+Tanpa `.env`, aplikasi tetap jalan normal pakai yfinance. Key disimpan **lokal di
+mesinmu saja** — tidak ikut ter-bundle ke aplikasi dan tidak dikirim ke mana pun
+selain Finnhub.
+
+---
+
 ## Arsitektur
 
 ```
