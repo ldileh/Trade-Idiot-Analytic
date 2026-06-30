@@ -11,6 +11,17 @@ export interface TickerQuery {
   range: Range;
 }
 
+// Favorites are per-market and persisted in localStorage so they survive reloads.
+const FAV_KEY = "favStocks";
+function loadFavs(): Record<Market, string[]> {
+  try {
+    const v = JSON.parse(localStorage.getItem(FAV_KEY) || "{}");
+    return { us: Array.isArray(v.us) ? v.us : [], id: Array.isArray(v.id) ? v.id : [] };
+  } catch {
+    return { us: [], id: [] };
+  }
+}
+
 // Pick the look-back to keep when the interval changes: reuse the current range
 // if it's still valid, otherwise fall back to the longest range that interval
 // allows (so switching to a minute interval doesn't trigger a data error).
@@ -34,7 +45,20 @@ export default function TickerInput({
   const [range, setRange] = useState<Range>(value.range);
   const [open, setOpen] = useState(false);
   const [market, setMarket] = useState<Market>("us");
+  const [favs, setFavs] = useState<Record<Market, string[]>>(loadFavs);
   const boxRef = useRef<HTMLDivElement>(null);
+
+  const favSyms = favs[market];
+
+  function toggleFav(sym: string) {
+    setFavs((prev) => {
+      const cur = prev[market];
+      const next = cur.includes(sym) ? cur.filter((s) => s !== sym) : [...cur, sym];
+      const all = { ...prev, [market]: next };
+      localStorage.setItem(FAV_KEY, JSON.stringify(all));
+      return all;
+    });
+  }
 
   // Follow the ticker when it's changed from outside (Rekomendasi/Momentum/
   // Kepemilikan picks set query.ticker) so the search box shows the new code.
@@ -125,6 +149,35 @@ export default function TickerInput({
         ))}
       </div>
 
+      {favSyms.length > 0 && (
+        <div className="chips" style={{ marginBottom: 12 }}>
+          <span className="muted" style={{ fontSize: 13, fontWeight: 600, alignSelf: "center" }}>
+            ⭐ Favorit:
+          </span>
+          {favSyms.map((sym) => (
+            <button
+              key={sym}
+              type="button"
+              className={`chip${ticker.toUpperCase() === sym ? " active" : ""}`}
+              onClick={() => pickStock(sym)}
+            >
+              {sym}
+              <span
+                className="x"
+                role="button"
+                aria-label={`Hapus ${sym} dari favorit`}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toggleFav(sym);
+                }}
+              >
+                ×
+              </span>
+            </button>
+          ))}
+        </div>
+      )}
+
       <form
         className="row"
         onSubmit={(e) => {
@@ -157,6 +210,18 @@ export default function TickerInput({
                 {matches.slice(0, 8).map((s) => (
                   <li key={s.sym}>
                     <button type="button" className="combo-item" onClick={() => pickStock(s.sym)}>
+                      <span
+                        className="fav-star"
+                        role="button"
+                        aria-label={favSyms.includes(s.sym) ? `Hapus ${s.sym} dari favorit` : `Tambah ${s.sym} ke favorit`}
+                        title={favSyms.includes(s.sym) ? "Hapus dari favorit" : "Tambah ke favorit"}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          toggleFav(s.sym);
+                        }}
+                      >
+                        {favSyms.includes(s.sym) ? "⭐" : "☆"}
+                      </span>
                       <b>{s.sym}</b>
                       <span className="muted">{s.name}</span>
                     </button>
