@@ -158,7 +158,13 @@ def get_ohlcv(
     # Patch the in-progress bar's close with a realtime quote (US only, no-op
     # otherwise) so "Harga sekarang" isn't ~15 min behind the market. Record the
     # source so the UI can show where the latest price came from.
-    rt = _realtime_close(ticker) if realtime else None
+    #
+    # Skip the patch when the latest bar is extended-hours: Finnhub's free /quote
+    # `c` only reflects the regular session (it returns the prior regular close
+    # during pre/post-market), so applying it would overwrite the correct pre/post
+    # price from Yahoo with a stale regular-hours one.
+    last_extended = bool(df["Extended"].iloc[-1])
+    rt = _realtime_close(ticker) if realtime and not last_extended else None
     if rt is not None:
         df.loc[df.index[-1], "Close"] = rt
     df.attrs["source"] = "finnhub" if rt is not None else "yahoo"
