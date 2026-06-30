@@ -14,9 +14,11 @@ def get_prices(
     ticker: str = Query(..., examples=["AAPL"]),
     interval: Interval = "1d",
     range: Range = "1y",
+    prepost: bool = False,
+    realtime: bool = True,
 ) -> PricesResponse:
     try:
-        df = get_ohlcv(ticker, interval, range)
+        df = get_ohlcv(ticker, interval, range, prepost, realtime)
     except DataError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
@@ -28,6 +30,7 @@ def get_prices(
             low=float(row.Low),
             close=float(row.Close),
             volume=float(row.Volume),
+            extended=bool(row.Extended),
         )
         for ts, row in zip(df.index, df.itertuples(index=False))
     ]
@@ -35,5 +38,6 @@ def get_prices(
         ticker=ticker.strip().upper(),
         interval=interval,
         range=range,
+        source=df.attrs.get("source", "yahoo"),
         candles=candles,
     )

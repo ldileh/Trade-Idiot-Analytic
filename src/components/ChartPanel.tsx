@@ -114,13 +114,23 @@ export default function ChartPanel({
   }, []);
 
   useEffect(() => {
-    const data: CandlestickData[] = candles.map((c) => ({
-      time: c.time as UTCTimestamp,
-      open: c.open,
-      high: c.high,
-      low: c.low,
-      close: c.close,
-    }));
+    const data: CandlestickData[] = candles.map((c) => {
+      const bar: CandlestickData = {
+        time: c.time as UTCTimestamp,
+        open: c.open,
+        high: c.high,
+        low: c.low,
+        close: c.close,
+      };
+      // Pre/post-market bars: dim to amber so they read as "outside regular hours"
+      // rather than as ordinary up/down candles.
+      if (c.extended) {
+        bar.color = "#f59e0b";
+        bar.borderColor = "#f59e0b";
+        bar.wickColor = "#f59e0b";
+      }
+      return bar;
+    });
     candleRef.current?.setData(data);
     // Only fit when the series shape changes (new ticker/range), so a silent
     // auto-refresh tick that just updates the last candle keeps the user's zoom.

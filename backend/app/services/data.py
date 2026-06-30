@@ -14,8 +14,8 @@ import pandas as pd
 import requests
 import yfinance as yf
 
-# (ticker, interval, range) -> (fetched_at_epoch, dataframe)
-_CACHE: dict[tuple[str, str, str], tuple[float, pd.DataFrame]] = {}
+# (ticker, interval, range, prepost, realtime) -> (fetched_at_epoch, dataframe)
+_CACHE: dict[tuple[str, str, str, bool, bool], tuple[float, pd.DataFrame]] = {}
 _CACHE_TTL_SECONDS = 30.0  # short, so the live price doesn't lag the market
 _LOCK = Lock()
 
@@ -86,17 +86,41 @@ def _normalize(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def get_ohlcv(ticker: str, interval: str, range_: str) -> pd.DataFrame:
+def _session_flags(idx: pd.DatetimeIndex) -> list[bool]:
+    """True where a bar falls outside US regular hours (09:30–16:00 ET).
+
+    yfinance returns tz-naive UTC for intraday bars; convert to US/Eastern and
+    compare against the regular session. Pre/post bars are everything else on a
+    weekday. (Daily+ bars never carry an extended session, so callers only ask
+    this for intraday US tickers.)
+    """
+    et = idx.tz_localize("UTC").tz_convert("America/New_York")
+    mins = et.hour * 60 + et.minute
+    regular = (mins >= 9 * 60 + 30) & (mins < 16 * 60)
+    return [not r for r in regular]
+
+
+def get_ohlcv(
+    ticker: str, interval: str, range_: str, prepost: bool = False, realtime: bool = True
+) -> pd.DataFrame:
     """Fetch OHLCV for a ticker. Cached for `_CACHE_TTL_SECONDS`.
 
-    Returns a DataFrame indexed by datetime with Open/High/Low/Close/Volume.
-    Raises DataError if Yahoo returns nothing (e.g. unknown ticker).
+    With `prepost=True`, pre/post-market bars are included (US intraday only;
+    Yahoo ignores it for IDX/daily) and an `Extended` bool column flags which
+    bars fall outside regular hours. Without it, `Extended` is all-False.
+
+    With `realtime=True` (default) the latest US bar's close is patched with a
+    Finnhub realtime quote when a key is set; `realtime=False` forces the plain
+    (delayed) Yahoo close. `df.attrs["source"]` reports which was used.
+
+    Returns a DataFrame indexed by datetime with Open/High/Low/Close/Volume
+    (+ Extended). Raises DataError if Yahoo returns nothing (e.g. unknown ticker).
     """
     ticker = ticker.strip().upper()
     if not ticker:
         raise DataError("Ticker must not be empty.")
 
-    key = (ticker, interval, range_)
+    key = (ticker, interval, range_, prepost, realtime)
     now = time.time()
 
     with _LOCK:
@@ -109,6 +133,7 @@ def get_ohlcv(ticker: str, interval: str, range_: str) -> pd.DataFrame:
         period=range_,
         interval=interval,
         auto_adjust=True,
+        prepost=prepost,
         progress=False,
         threads=False,
     )
@@ -123,11 +148,17 @@ def get_ohlcv(ticker: str, interval: str, range_: str) -> pd.DataFrame:
     if df.empty:
         raise DataError(f"Price data for '{ticker}' was empty after cleaning.")
 
+    # Flag extended-hours bars so the chart can mark them. Only meaningful for
+    # US intraday with prepost; otherwise every bar is "regular".
+    df["Extended"] = _session_flags(df.index) if prepost else False
+
     # Patch the in-progress bar's close with a realtime quote (US only, no-op
-    # otherwise) so "Harga sekarang" isn't ~15 min behind the market.
-    rt = _realtime_close(ticker)
+    # otherwise) so "Harga sekarang" isn't ~15 min behind the market. Record the
+    # source so the UI can show where the latest price came from.
+    rt = _realtime_close(ticker) if realtime else None
     if rt is not None:
         df.loc[df.index[-1], "Close"] = rt
+    df.attrs["source"] = "finnhub" if rt is not None else "yahoo"
 
     with _LOCK:
         _CACHE[key] = (now, df)
@@ -141,4 +172,9 @@ if __name__ == "__main__":
     assert _realtime_close("AAPL") is None
     _FINNHUB_KEY = "dummy"
     assert _realtime_close("BBCA.JK") is None  # IDX -> skipped, no call
+
+    # 14:00 & 21:00 UTC = 09:00 (pre) & 16:00 (post) ET on a winter weekday;
+    # 15:00 UTC = 10:00 ET = regular.
+    idx = pd.to_datetime(["2024-01-08 14:00", "2024-01-08 15:00", "2024-01-08 21:00"])
+    assert _session_flags(idx) == [True, False, True]
     print("data.py self-check OK")
