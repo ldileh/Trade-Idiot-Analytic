@@ -14,7 +14,7 @@ import yfinance as yf
 
 # (ticker, interval, range) -> (fetched_at_epoch, dataframe)
 _CACHE: dict[tuple[str, str, str], tuple[float, pd.DataFrame]] = {}
-_CACHE_TTL_SECONDS = 60.0
+_CACHE_TTL_SECONDS = 30.0  # short, so the live price doesn't lag the market
 _LOCK = Lock()
 
 

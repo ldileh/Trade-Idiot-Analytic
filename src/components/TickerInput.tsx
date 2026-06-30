@@ -36,6 +36,12 @@ export default function TickerInput({
   const [market, setMarket] = useState<Market>("us");
   const boxRef = useRef<HTMLDivElement>(null);
 
+  // Follow the ticker when it's changed from outside (Rekomendasi/Momentum/
+  // Kepemilikan picks set query.ticker) so the search box shows the new code.
+  useEffect(() => {
+    setTicker(value.ticker);
+  }, [value.ticker]);
+
   const quickSyms = POPULAR_SYMS_BY_MARKET[market];
 
   const allowedRanges = ALLOWED_RANGES[interval];
