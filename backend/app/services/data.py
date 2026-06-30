@@ -6,10 +6,12 @@ or backtest parameters on the same data.
 """
 from __future__ import annotations
 
+import os
 import time
 from threading import Lock
 
 import pandas as pd
+import requests
 import yfinance as yf
 
 # (ticker, interval, range) -> (fetched_at_epoch, dataframe)
@@ -17,9 +19,47 @@ _CACHE: dict[tuple[str, str, str], tuple[float, pd.DataFrame]] = {}
 _CACHE_TTL_SECONDS = 30.0  # short, so the live price doesn't lag the market
 _LOCK = Lock()
 
+# Realtime last-price override (US only). yfinance is ~15 min delayed for the
+# in-progress bar; Finnhub's free /quote is realtime for US tickers, so when a
+# key is set we patch the latest candle's close with it. Falls back silently to
+# yfinance on any failure or for IDX (.JK) tickers (Finnhub returns 0 there).
+_FINNHUB_KEY = os.getenv("FINNHUB_API_KEY", "").strip()
+_QUOTE_CACHE: dict[str, tuple[float, float]] = {}  # ticker -> (fetched_at, price)
+_QUOTE_TTL_SECONDS = 10.0
+
 
 class DataError(Exception):
     """Raised when no usable price data could be retrieved for a ticker."""
+
+
+def _realtime_close(ticker: str) -> float | None:
+    """Latest realtime US price from Finnhub, or None if unavailable.
+
+    Fails soft on missing key, IDX tickers, network errors, or a non-positive
+    quote — every miss just leaves the yfinance close in place.
+    """
+    if not _FINNHUB_KEY or ticker.endswith(".JK"):
+        return None
+
+    now = time.time()
+    cached = _QUOTE_CACHE.get(ticker)
+    if cached and (now - cached[0]) < _QUOTE_TTL_SECONDS:
+        return cached[1]
+
+    try:
+        resp = requests.get(
+            "https://finnhub.io/api/v1/quote",
+            params={"symbol": ticker, "token": _FINNHUB_KEY},
+            timeout=4,
+        )
+        price = float(resp.json().get("c") or 0.0)
+    except (requests.RequestException, ValueError, TypeError):
+        return None
+    if price <= 0:
+        return None
+
+    _QUOTE_CACHE[ticker] = (now, price)
+    return price
 
 
 def _normalize(df: pd.DataFrame) -> pd.DataFrame:
@@ -83,7 +123,22 @@ def get_ohlcv(ticker: str, interval: str, range_: str) -> pd.DataFrame:
     if df.empty:
         raise DataError(f"Price data for '{ticker}' was empty after cleaning.")
 
+    # Patch the in-progress bar's close with a realtime quote (US only, no-op
+    # otherwise) so "Harga sekarang" isn't ~15 min behind the market.
+    rt = _realtime_close(ticker)
+    if rt is not None:
+        df.loc[df.index[-1], "Close"] = rt
+
     with _LOCK:
         _CACHE[key] = (now, df)
 
     return df
+
+
+if __name__ == "__main__":
+    # Self-check the realtime-override fail-soft paths (no network needed).
+    _FINNHUB_KEY = ""  # no key -> always None
+    assert _realtime_close("AAPL") is None
+    _FINNHUB_KEY = "dummy"
+    assert _realtime_close("BBCA.JK") is None  # IDX -> skipped, no call
+    print("data.py self-check OK")

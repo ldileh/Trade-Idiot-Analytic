@@ -8,6 +8,8 @@ pydantic==2.10.4
 yfinance==1.4.1
 # Used directly to download KSEI ownership ZIPs (also a yfinance dependency).
 requests==2.34.2
+# Loads backend/.env (e.g. FINNHUB_API_KEY) at startup.
+python-dotenv==1.0.1
 pandas==2.2.3
 numpy==1.26.4
 
