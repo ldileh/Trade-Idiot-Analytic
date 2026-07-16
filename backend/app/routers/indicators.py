@@ -7,7 +7,8 @@ from fastapi import APIRouter, HTTPException
 
 from app.models import IndicatorRequest, IndicatorResponse, IndicatorSeries
 from app.services import indicators as indicator_service
-from app.services.data import DataError, get_ohlcv
+from app.services.data import DataError
+from app.services.provider import get_provider
 
 router = APIRouter(tags=["indicators"])
 
@@ -23,7 +24,7 @@ def _to_value_list(series) -> list[float | None]:
 @router.post("/indicators", response_model=IndicatorResponse)
 def compute_indicators(req: IndicatorRequest) -> IndicatorResponse:
     try:
-        df = get_ohlcv(req.ticker, req.interval, req.range)
+        df = get_provider("prices").get_historical(req.ticker, req.interval, req.range)
     except DataError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

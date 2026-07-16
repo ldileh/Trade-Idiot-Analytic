@@ -4,7 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models import Interval, Pattern, PatternsResponse, Range
-from app.services.data import DataError, get_ohlcv
+from app.services.data import DataError
+from app.services.provider import get_provider
 from app.services.patterns import detect
 
 router = APIRouter(tags=["patterns"])
@@ -17,7 +18,7 @@ def get_patterns(
     range: Range = "1y",
 ) -> PatternsResponse:
     try:
-        df = get_ohlcv(ticker, interval, range)
+        df = get_provider("prices").get_historical(ticker, interval, range)
     except DataError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

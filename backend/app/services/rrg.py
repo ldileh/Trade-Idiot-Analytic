@@ -17,7 +17,8 @@ from __future__ import annotations
 import numpy as np
 import pandas as pd
 
-from app.services.data import DataError, get_ohlcv
+from app.services.data import DataError
+from app.services.provider import get_provider
 
 # Window for the rolling normalization. ~12 keeps the ratio responsive on the
 # weekly/daily series typical for an RRG without being too jumpy.
@@ -27,7 +28,7 @@ _MOM_WINDOW = 1
 
 
 def _close(ticker: str, interval: str, range_: str) -> pd.Series:
-    df = get_ohlcv(ticker, interval, range_)
+    df = get_provider("prices").get_historical(ticker, interval, range_)
     return df["Close"].astype(float)
 
 
