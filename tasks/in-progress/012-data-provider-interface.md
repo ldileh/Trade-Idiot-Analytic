@@ -2,7 +2,7 @@
 id: 012
 title: Interface DataProvider di backend
 branch: task/012-data-provider-interface
-status: backlog
+status: in-progress
 created: 2026-07-16
 ---
 
