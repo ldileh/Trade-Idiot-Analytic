@@ -185,6 +185,21 @@ class FundamentalsResponse(BaseModel):
     altman: AltmanScore | None = None        # Skor Risiko Bangkrut
 
 
+class CorrelationPeer(BaseModel):
+    """One peer's return-correlation with the active symbol."""
+
+    sym: str
+    corr: float  # Pearson correlation of daily returns, -1..1
+    strength: Literal["Kuat", "Sedang", "Lemah"]
+
+
+class CorrelationResponse(BaseModel):
+    ticker: str
+    enough_data: bool
+    same: list[CorrelationPeer]      # move together (positive)
+    opposite: list[CorrelationPeer]  # move opposite (negative)
+
+
 class MarketMapTile(BaseModel):
     """One treemap box: size = market_cap, color = change_pct."""
 
