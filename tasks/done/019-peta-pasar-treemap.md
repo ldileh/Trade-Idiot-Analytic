@@ -2,7 +2,7 @@
 id: 019
 title: Peta Pasar (treemap) — favorit & sektor IDX
 branch: task/019-peta-pasar-treemap
-status: in-progress
+status: done
 created: 2026-07-16
 ---
 
