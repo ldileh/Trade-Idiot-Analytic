@@ -14,6 +14,7 @@ import type {
   Range,
   RRGResponse,
 } from "../types";
+import { loadSettings, settingsHeaders } from "../settings";
 
 // Browser-dev default; inside Tauri the real port comes from the shell (below).
 export const BACKEND_BASE =
@@ -36,9 +37,12 @@ function backendBase(): Promise<string> {
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = await backendBase();
+  // Attach the user's Data Source (BYOK) choices as headers, read fresh each
+  // call so a settings change takes effect on the next request. When everything
+  // is default these are empty and the request is unchanged.
   const res = await fetch(`${base}${path}`, {
-    headers: { "Content-Type": "application/json" },
     ...init,
+    headers: { "Content-Type": "application/json", ...settingsHeaders(loadSettings()), ...init?.headers },
   });
   if (!res.ok) {
     // Surface FastAPI's `detail` when present. Custom errors give a string

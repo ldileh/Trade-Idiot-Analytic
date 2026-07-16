@@ -2,7 +2,7 @@
 id: 017
 title: Layar pengaturan Sumber Data (BYOK) + toggle Hemat Data/Real-time
 branch: task/017-settings-sumber-data-byok
-status: backlog
+status: done
 created: 2026-07-16
 ---
 
@@ -14,16 +14,18 @@ Memberi user kontrol sumber data per fitur: Default (gratis, delayed) atau Custo
 berbayar jadi opsi, bukan dependency wajib.
 
 ## Spec / kriteria selesai
-- [ ] Modul `src/settings.ts`: simpan/muat pengaturan di localStorage (pola
+- [x] Modul `src/settings.ts`: simpan/muat pengaturan di localStorage (pola
       `src/portfolio.ts`) — pilihan provider per fitur + API key user + toggle
       Hemat Data/Real-time.
-- [ ] UI "Sumber Data" (modal/panel, pakai primitif `ui.tsx`): per fitur (harga,
+- [x] UI "Sumber Data" (SettingsPanel, primitif `ui.tsx`): per fitur (harga,
       fundamental, kepemilikan) pilih Default atau Custom + isi key; toggle
-      "Hemat Data (gratis, tertunda)" / "Real-time (butuh key sendiri)".
-- [ ] Frontend meneruskan pilihan provider/key ke backend per request (header atau query);
-      backend memilih `DataProvider` sesuai pilihan itu, fallback ke default bila kosong.
-- [ ] Key tidak pernah ditulis ke log/error message; hanya tersimpan lokal di mesin user.
-- [ ] Tanpa pengaturan apa pun, perilaku app identik dengan sekarang.
+      "Hemat Data" / "Real-time".
+- [x] Frontend meneruskan pilihan provider/key ke backend per request (header
+      `X-Key-<prov>`, `X-Provider-<feat>`, `X-Realtime`); prices router memilih
+      provider dgn key itu, fallback default bila kosong.
+- [x] Key tidak pernah ditulis ke log/error (diuji: FAKEKEY tidak muncul di log;
+      dikirim via header bukan query). Hanya tersimpan lokal di mesin user.
+- [x] Tanpa pengaturan apa pun, perilaku app identik (header kosong → jalur default).
 
 ## Catatan teknis
 - Bergantung pada task 012 (interface `DataProvider` — pemilihan provider per request).

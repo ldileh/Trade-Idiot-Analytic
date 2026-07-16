@@ -63,6 +63,11 @@ class YahooProvider(DataProvider):
 
     name = "yahoo"
 
+    def __init__(self, finnhub_key: str | None = None):
+        # Per-request BYOK Finnhub key (from the Data Source settings). None =
+        # fall back to the env-configured key, i.e. today's behavior.
+        self._finnhub_key = finnhub_key
+
     def get_historical(
         self,
         ticker: str,
@@ -76,7 +81,7 @@ class YahooProvider(DataProvider):
         # Live/intraday and short ranges use the direct Yahoo path unchanged.
         if interval == "1d" and range_ in _CACHED_RANGES and not prepost:
             return bars_cache.get_daily_cached(ticker, range_, self._fetch_daily)
-        return get_ohlcv(ticker, interval, range_, prepost, realtime)
+        return get_ohlcv(ticker, interval, range_, prepost, realtime, self._finnhub_key)
 
     @staticmethod
     def _fetch_daily(ticker: str, interval: str, range_: str) -> pd.DataFrame:
@@ -99,14 +104,22 @@ class YahooProvider(DataProvider):
 _DEFAULT = YahooProvider()
 
 
-def get_provider(feature: str | None = None, name: str | None = None) -> DataProvider:
+def get_provider(
+    feature: str | None = None,
+    name: str | None = None,
+    finnhub_key: str | None = None,
+) -> DataProvider:
     """Return the provider for a feature/request.
 
     `feature` is the capability being served ("prices" | "fundamentals" |
-    "ownership"); `name` optionally forces a specific provider. Today only the
-    default Yahoo provider exists, so both are accepted and ignored — task 017/018
-    wire user selection in here without changing any caller.
+    "ownership"); `name` optionally forces a specific provider; `finnhub_key` is
+    the user's BYOK Finnhub key (Data Source settings) for the realtime US patch.
+    Only the Yahoo provider exists today, so `name` is accepted and ignored —
+    task 018 wires external providers in here. When a key is supplied we return a
+    per-request Yahoo provider carrying it; otherwise the shared default (env key).
     """
+    if finnhub_key:
+        return YahooProvider(finnhub_key=finnhub_key)
     return _DEFAULT
 
 
