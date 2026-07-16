@@ -2,7 +2,7 @@
 id: 015
 title: Kekuatan Tren multi-timeframe (1/3/6 bulan)
 branch: task/015-momentum-multi-timeframe
-status: backlog
+status: in-progress
 created: 2026-07-16
 ---
 
