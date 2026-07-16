@@ -7,6 +7,7 @@ import IndicatorControls from "./components/IndicatorControls";
 import MomentumPanel from "./components/MomentumPanel";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
+import CorrelationPanel from "./components/CorrelationPanel";
 import MarketMapPanel from "./components/MarketMapPanel";
 import RecommendationsPanel from "./components/RecommendationsPanel";
 import SettingsPanel from "./components/SettingsPanel";
@@ -353,6 +354,13 @@ export default function App() {
         onClose={() => setShowPatterns(false)}
       >
         <MomentumPanel data={momentum} />
+        <CorrelationPanel
+          ticker={query.ticker}
+          onPick={(sym) => {
+            setQuery((q) => ({ ...q, ticker: sym }));
+            setShowPatterns(false);
+          }}
+        />
         <PatternPanel data={patterns} loading={patternsLoading} />
       </Modal>
 

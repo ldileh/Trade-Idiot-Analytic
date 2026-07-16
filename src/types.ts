@@ -167,6 +167,19 @@ export interface FundamentalsResponse {
   altman?: AltmanScore | null;
 }
 
+export interface CorrelationPeer {
+  sym: string;
+  corr: number;
+  strength: "Kuat" | "Sedang" | "Lemah";
+}
+
+export interface CorrelationResponse {
+  ticker: string;
+  enough_data: boolean;
+  same: CorrelationPeer[];
+  opposite: CorrelationPeer[];
+}
+
 export interface MarketMapTile {
   sym: string;
   market_cap: number | null;

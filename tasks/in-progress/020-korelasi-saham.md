@@ -14,15 +14,14 @@ Memberi konteks di halaman simbol/posisi: saham lain yang biasanya naik-turun be
 sektornya atau independen.
 
 ## Spec / kriteria selesai
-- [ ] Backend menghitung korelasi return harian (mis. 6 bulan terakhir) antara simbol
-      aktif dan anggota sektornya / watchlist, dari OHLCV ter-cache — tanpa panggilan
-      API tambahan.
-- [ ] UI di halaman simbol menampilkan daftar ringkas: N saham paling searah (dan paling
-      berlawanan) + kekuatan hubungannya dalam kata (Kuat/Sedang/Lemah), bukan angka
-      korelasi mentah.
-- [ ] Label & tip Bahasa Indonesia sesuai tabel [PLAN.md](../../PLAN.md) §3
-      ("Saham lain yang biasanya naik-turun bersamaan").
-- [ ] Data kurang (saham baru listing / cache kosong) → tampil "belum cukup data".
+- [x] Backend (`correlation.py` + /correlation) menghitung korelasi Pearson return
+      harian 6 bulan antara simbol aktif dan kandidat (sektor + watchlist) dari OHLCV
+      ter-cache — tanpa API tambahan.
+- [x] UI (CorrelationPanel di drawer Pola) menampilkan N saham paling searah & paling
+      berlawanan + kekuatan dalam kata (Kuat/Sedang/Lemah), bukan angka mentah.
+- [x] Label & tip Bahasa Indonesia "Saham lain yang biasanya naik-turun bersamaan"
+      ([PLAN.md](../../PLAN.md) §3).
+- [x] Data kurang (overlap < ~2 bulan) → `enough_data=false` → "Belum cukup data".
 
 ## Catatan teknis
 - Bergantung pada task 013 (cache OHLCV lokal).

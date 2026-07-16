@@ -3,6 +3,7 @@
 import type {
   BacktestRequest,
   BacktestResponse,
+  CorrelationResponse,
   FundamentalsResponse,
   IndicatorRequest,
   IndicatorResponse,
@@ -97,6 +98,11 @@ export function getRRG(
     tail: String(tail),
   });
   return request<RRGResponse>(`/rrg?${q}`);
+}
+
+export function getCorrelation(ticker: string, peers: string[], top = 5): Promise<CorrelationResponse> {
+  const q = new URLSearchParams({ ticker, peers: peers.join(","), top: String(top) });
+  return request<CorrelationResponse>(`/correlation?${q}`);
 }
 
 export function getMarketMap(tickers: string[]): Promise<MarketMapResponse> {

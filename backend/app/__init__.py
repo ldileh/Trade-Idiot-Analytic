@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     backtest,
+    correlation,
     fundamentals,
     indicators,
     marketmap,
@@ -47,5 +48,6 @@ def create_app() -> FastAPI:
     app.include_router(fundamentals.router)
     app.include_router(momentum.router)
     app.include_router(marketmap.router)
+    app.include_router(correlation.router)
 
     return app
