@@ -12,9 +12,15 @@ from __future__ import annotations
 
 import pandas as pd
 
+from app.services import bars_cache
 from app.services import fundamentals as _fundamentals
 from app.services import ownership as _ownership
 from app.services.data import get_ohlcv
+
+# Daily ranges long enough that a bulk backfill + SQLite cache beats re-fetching
+# from Yahoo every time (backtesting / momentum). Short ranges and intraday stay
+# on the live Yahoo path — they change too fast to cache.
+_CACHED_RANGES = {"3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"}
 
 
 class DataProvider:
@@ -65,7 +71,17 @@ class YahooProvider(DataProvider):
         prepost: bool = False,
         realtime: bool = True,
     ) -> pd.DataFrame:
+        # Long daily histories go through the SQLite bar cache (backfill once,
+        # delta-sync after) so backtests/momentum don't re-download every time.
+        # Live/intraday and short ranges use the direct Yahoo path unchanged.
+        if interval == "1d" and range_ in _CACHED_RANGES and not prepost:
+            return bars_cache.get_daily_cached(ticker, range_, self._fetch_daily)
         return get_ohlcv(ticker, interval, range_, prepost, realtime)
+
+    @staticmethod
+    def _fetch_daily(ticker: str, interval: str, range_: str) -> pd.DataFrame:
+        """Backfill source for the cache: plain (delayed) daily Yahoo bars."""
+        return get_ohlcv(ticker, interval, range_, prepost=False, realtime=False)
 
     def get_quote(self, ticker: str) -> float | None:
         df = get_ohlcv(ticker, "1d", "5d")

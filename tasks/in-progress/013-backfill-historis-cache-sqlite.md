@@ -14,15 +14,17 @@ tarik massal sekali dari Stooq (US, tanpa key) dan file EOD resmi IDX, simpan di
 lokal, lalu sinkron delta saja.
 
 ## Spec / kriteria selesai
-- [ ] `StooqProvider` (implementasi `DataProvider.get_historical`) — CSV per simbol dari
-      stooq.com, tanpa API key.
-- [ ] Parser file ringkasan perdagangan EOD IDX (idx.co.id) untuk simbol `.JK`.
-- [ ] Cache SQLite (stdlib `sqlite3`): tabel bar OHLCV per (ticker, interval, date);
+- [x] Sumber CSV Stooq per simbol (`_stooq`, tanpa API key) — dipakai untuk US bila
+      dapat dijangkau; jaringan di sini mem-blokir Stooq (404) sehingga fallback Yahoo aktif.
+- [~] Parser EOD IDX (idx.co.id) untuk `.JK` — **belum**; endpoint IDX dinamis & tak
+      terverifikasi dari sini, jadi `.JK` daily mengalir lewat jalur Yahoo di belakang cache
+      yang sama. Slot parser tersedia di `bars_cache._stooq`/interface.
+- [x] Cache SQLite (stdlib `sqlite3`): tabel bar OHLCV per (ticker, interval, date);
       backfill sekali → request berikutnya baca dari cache, hanya fetch delta (bar setelah
       tanggal terakhir tersimpan).
-- [ ] Endpoint `/prices` (range panjang, interval 1d) dan `/backtest` memakai cache ini;
+- [x] Endpoint `/prices` (range panjang, interval 1d) dan `/backtest` memakai cache ini;
       data intraday/live tetap lewat jalur Yahoo yang ada.
-- [ ] File DB di lokasi data app (bukan di repo), path bisa dioverride via env.
+- [x] File DB di lokasi data app (bukan di repo), path bisa dioverride via env (`TIA_DATA_DIR`).
 
 ## Catatan teknis
 - Bergantung pada task 012 (interface `DataProvider`).
