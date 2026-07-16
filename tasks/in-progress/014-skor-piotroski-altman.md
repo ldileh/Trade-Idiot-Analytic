@@ -14,16 +14,16 @@ Piotroski F-Score (0–9) sebagai "Skor Kesehatan Keuangan" dan Altman Z-Score s
 "Skor Risiko Bangkrut" — bukan satu skor campuran.
 
 ## Spec / kriteria selesai
-- [ ] Backend menghitung F-Score: 9 sinyal biner (profitabilitas, leverage/likuiditas,
+- [x] Backend menghitung F-Score: 9 sinyal biner (profitabilitas, leverage/likuiditas,
       efisiensi) dari laporan keuangan yfinance (`.financials`, `.balance_sheet`,
       `.cashflow`) → 0–9 + rincian sinyal mana yang lolos.
-- [ ] Backend menghitung Z-Score: 5 rasio (modal kerja/aset, laba ditahan/aset, EBIT/aset,
+- [x] Backend menghitung Z-Score: 5 rasio (modal kerja/aset, laba ditahan/aset, EBIT/aset,
       ekuitas pasar/liabilitas, penjualan/aset) + zona (aman/abu-abu/bahaya).
-- [ ] Respons `/fundamentals` memuat kedua skor terpisah + tip Bahasa Indonesia per skor
+- [x] Respons `/fundamentals` memuat kedua skor terpisah + tip Bahasa Indonesia per skor
       (label sesuai tabel [PLAN.md](../../PLAN.md) §3).
-- [ ] `FundamentalsPanel.tsx` menampilkan dua skor sebagai dua angka/kartu terpisah.
-- [ ] Data laporan keuangan tidak lengkap (umum di saham IDX) → skor tampil "tidak cukup
-      data", bukan angka menyesatkan atau error 500.
+- [x] `FundamentalsPanel.tsx` menampilkan dua skor sebagai dua angka/kartu terpisah.
+- [x] Data laporan keuangan tidak lengkap (umum di saham IDX) → skor tampil "tidak cukup
+      data", bukan angka menyesatkan atau error 500. (BBCA.JK: Z=tidak cukup data)
 
 ## Catatan teknis
 - Perluas pola yang ada di `backend/app/services/fundamentals.py` (`_METRICS` + judge +

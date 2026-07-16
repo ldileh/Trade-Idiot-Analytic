@@ -14,6 +14,8 @@ from typing import Callable
 
 import yfinance as yf
 
+from app.services.scores import get_scores
+
 # Fundamentals barely move intraday; cache longer than price data.
 _CACHE: dict[str, tuple[float, dict]] = {}
 _CACHE_TTL_SECONDS = 3600.0
@@ -159,6 +161,14 @@ def get_fundamentals(ticker: str) -> dict:
     else:
         bias, bias_text = "neutral", "Fundamental campuran: ada yang bagus, ada yang perlu dicermati."
 
+    # Two separate research-backed scores (Piotroski / Altman) alongside the
+    # composite. Fail soft: if the statements aren't reachable, omit them rather
+    # than fail the whole fundamentals response.
+    try:
+        scores = get_scores(ticker)
+    except Exception:  # noqa: BLE001 — scores are a best-effort add-on
+        scores = {"piotroski": None, "altman": None}
+
     return {
         "ticker": ticker,
         "name": info.get("shortName") or info.get("longName") or ticker,
@@ -166,6 +176,8 @@ def get_fundamentals(ticker: str) -> dict:
         "bias": bias,
         "bias_text": bias_text,
         "metrics": metrics,
+        "piotroski": scores.get("piotroski"),
+        "altman": scores.get("altman"),
     }
 
 

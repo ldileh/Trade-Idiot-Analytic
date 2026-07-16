@@ -138,6 +138,24 @@ export interface FundamentalMetric {
   verdict_text: string;
 }
 
+export interface PiotroskiScore {
+  label: string;
+  tip: string;
+  score: number | null; // null = tidak cukup data
+  max: number;
+  enough_data: boolean;
+  signals: { label: string; pass: boolean }[];
+}
+
+export interface AltmanScore {
+  label: string;
+  tip: string;
+  score: number | null;
+  zone: "safe" | "grey" | "distress" | null;
+  zone_text: string;
+  enough_data: boolean;
+}
+
 export interface FundamentalsResponse {
   ticker: string;
   name: string;
@@ -145,6 +163,8 @@ export interface FundamentalsResponse {
   bias: "good" | "neutral" | "bad";
   bias_text: string;
   metrics: FundamentalMetric[];
+  piotroski?: PiotroskiScore | null;
+  altman?: AltmanScore | null;
 }
 
 export interface EquityPoint {

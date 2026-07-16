@@ -1,7 +1,12 @@
 // Fundamental ratios (valuation / health / growth) with a composite health
 // score. All numbers and plain-Indonesian copy come from the backend; here we
 // just group by category and color-code each metric's verdict.
-import type { FundamentalMetric, FundamentalsResponse } from "../types";
+import type {
+  AltmanScore,
+  FundamentalMetric,
+  FundamentalsResponse,
+  PiotroskiScore,
+} from "../types";
 import { InfoTip } from "./ui";
 
 const VERDICT_EMOJI: Record<number, string> = { 1: "🟢", 0: "⚪", [-1]: "🔴" };
@@ -23,6 +28,13 @@ export default function FundamentalsPanel({
 
       {data && (
         <>
+          {(data.piotroski || data.altman) && (
+            <div className="fund-list" style={{ gridTemplateColumns: "1fr 1fr", marginBottom: 12 }}>
+              {data.piotroski && <PiotroskiCard s={data.piotroski} />}
+              {data.altman && <AltmanCard s={data.altman} />}
+            </div>
+          )}
+
           <div className={`verdict ${VERDICT_CLASS[data.bias === "good" ? 1 : data.bias === "bad" ? -1 : 0]}`}
                style={{ marginTop: 4, marginBottom: 12 }}>
             <span className="emoji">{VERDICT_EMOJI[data.bias === "good" ? 1 : data.bias === "bad" ? -1 : 0]}</span>
@@ -52,6 +64,44 @@ export default function FundamentalsPanel({
           </p>
         </>
       )}
+    </div>
+  );
+}
+
+// Skor Kesehatan Keuangan (Piotroski, 0–9): higher = healthier.
+function PiotroskiCard({ s }: { s: PiotroskiScore }) {
+  const tone = !s.enough_data ? "neutral" : s.score! >= 7 ? "bullish" : s.score! <= 3 ? "bearish" : "neutral";
+  const emoji = !s.enough_data ? "⚪" : s.score! >= 7 ? "🟢" : s.score! <= 3 ? "🔴" : "🟡";
+  return (
+    <div className={`pattern ${tone}`}>
+      <div className="p-head">
+        <span>{emoji} {s.label}</span>
+        <InfoTip text={s.tip} />
+      </div>
+      <div className="p-sum">
+        <b style={{ fontSize: 15 }}>{s.enough_data ? `${s.score}/${s.max}` : "tidak cukup data"}</b>
+        {s.enough_data && (
+          <span className="muted"> — {s.signals.filter((x) => x.pass).length} dari {s.signals.length} sinyal lolos</span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Skor Risiko Bangkrut (Altman Z): safe / grey / distress zone.
+function AltmanCard({ s }: { s: AltmanScore }) {
+  const tone = s.zone === "safe" ? "bullish" : s.zone === "distress" ? "bearish" : "neutral";
+  const emoji = s.zone === "safe" ? "🟢" : s.zone === "distress" ? "🔴" : s.zone === "grey" ? "🟡" : "⚪";
+  return (
+    <div className={`pattern ${tone}`}>
+      <div className="p-head">
+        <span>{emoji} {s.label}</span>
+        <InfoTip text={s.tip} />
+      </div>
+      <div className="p-sum">
+        <b style={{ fontSize: 15 }}>{s.enough_data ? s.score : "tidak cukup data"}</b>
+        {s.enough_data && <span className="muted"> — {s.zone_text}</span>}
+      </div>
     </div>
   );
 }

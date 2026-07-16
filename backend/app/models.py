@@ -152,6 +152,28 @@ class FundamentalMetric(BaseModel):
     verdict_text: str
 
 
+class PiotroskiScore(BaseModel):
+    """Skor Kesehatan Keuangan — Piotroski F-Score (0–9)."""
+
+    label: str
+    tip: str
+    score: int | None  # None = tidak cukup data
+    max: int = 9
+    enough_data: bool
+    signals: list[dict]  # [{label, pass}] for the signals we could judge
+
+
+class AltmanScore(BaseModel):
+    """Skor Risiko Bangkrut — Altman Z-Score + distress zone."""
+
+    label: str
+    tip: str
+    score: float | None  # None = tidak cukup data
+    zone: Literal["safe", "grey", "distress"] | None
+    zone_text: str
+    enough_data: bool
+
+
 class FundamentalsResponse(BaseModel):
     ticker: str
     name: str
@@ -159,6 +181,8 @@ class FundamentalsResponse(BaseModel):
     bias: Literal["good", "neutral", "bad"]
     bias_text: str
     metrics: list[FundamentalMetric]
+    piotroski: PiotroskiScore | None = None  # Skor Kesehatan Keuangan
+    altman: AltmanScore | None = None        # Skor Risiko Bangkrut
 
 
 class EquityPoint(BaseModel):
