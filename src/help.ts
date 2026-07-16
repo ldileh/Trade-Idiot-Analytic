@@ -2,6 +2,72 @@
 // Indonesian explanation here, so a first-time trader never meets a raw term.
 import type { IndicatorKind, Interval, Range, Strategy } from "./types";
 
+// Kamus label pemula terpusat (PLAN.md §3): satu istilah teknis = satu label
+// sederhana yang konsisten di seluruh app. Panel-panel memakai label dari sini
+// agar tidak ada dua istilah untuk satu konsep. `caveat` diisi untuk sinyal
+// yang dukungan risetnya campuran (mis. Golden Cross) — jangan dibaca sebagai
+// jaminan.
+export interface GlossaryEntry {
+  term: string; // istilah teknis aslinya
+  label: string; // label yang ditampilkan ke user
+  explain: string; // penjelasan satu baris
+  caveat?: string;
+}
+
+export const GLOSSARY: Record<string, GlossaryEntry> = {
+  piotroski: {
+    term: "Piotroski F-Score",
+    label: "Skor Kesehatan Keuangan",
+    explain: "Menilai apakah perusahaan untung, hutangnya wajar, dan operasinya makin efisien.",
+  },
+  altman: {
+    term: "Altman Z-Score",
+    label: "Skor Risiko Bangkrut",
+    explain: "Menilai kemungkinan perusahaan kesulitan keuangan 1–2 tahun ke depan.",
+  },
+  momentum: {
+    term: "Momentum multi-timeframe",
+    label: "Kekuatan Tren: 1 Bulan / 3 Bulan / 6 Bulan",
+    explain: "3 angka terpisah agar terlihat apakah tren baru mulai atau sudah lama.",
+  },
+  golden_cross: {
+    term: "Golden Cross",
+    label: "Tren Naik",
+    explain: "Rata-rata harga jangka pendek melewati rata-rata jangka panjang.",
+    caveat: "Cek juga indikator lain, tidak selalu akurat.",
+  },
+  rsi_extreme: {
+    term: "Overbought / Oversold",
+    label: "Sudah Kemahalan / Sudah Kemurahan",
+    explain: "Harga sudah naik/turun banyak jangka pendek, rawan berbalik.",
+  },
+  volatility: {
+    term: "Volatilitas (ATR/Bollinger)",
+    label: "Tingkat Gejolak Harga: Tinggi/Sedang/Rendah",
+    explain: "Seberapa liar harga bergerak.",
+  },
+  volume: {
+    term: "Volume + OBV",
+    label: "Minat Beli: Kuat/Lemah",
+    explain: "Apakah kenaikan harga didukung banyak transaksi.",
+  },
+  treemap: {
+    term: "Treemap / Heatmap",
+    label: "Peta Pasar",
+    explain: "Kotak besar = perusahaan besar, hijau = naik, merah = turun.",
+  },
+  rrg: {
+    term: "Kuadran RRG",
+    label: "Peta Arah Sektor: Lagi Naik Daun / Mulai Melemah / Lagi Lesu / Mulai Bangkit",
+    explain: "Posisi tiap saham dibanding sektornya.",
+  },
+  correlation: {
+    term: "Korelasi",
+    label: "Saham yang Gerak Bareng",
+    explain: "Saham lain yang biasanya naik-turun bersamaan.",
+  },
+};
+
 export interface IndicatorInfo {
   label: string; // friendly name
   emoji: string;

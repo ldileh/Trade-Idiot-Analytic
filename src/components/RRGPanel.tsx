@@ -9,11 +9,13 @@ import { SECTORS } from "../sectors";
 import type { Interval, RRGResponse, RRGQuadrant } from "../types";
 import RRGChart from "./RRGChart";
 
+// Peta Arah Sektor — label pemula pengganti Leading/Weakening/Lagging/Improving
+// (PLAN.md §3): posisi tiap saham dibanding benchmark sektornya.
 const QUADRANT_LABEL: Record<RRGQuadrant, string> = {
-  leading: "🟢 Leading (kuat & menguat)",
-  weakening: "🟡 Weakening (kuat tapi melemah)",
-  lagging: "🔴 Lagging (lemah & melemah)",
-  improving: "🔵 Improving (lemah tapi membaik)",
+  leading: "🟢 Lagi Naik Daun (kuat & menguat)",
+  weakening: "🟡 Mulai Melemah (kuat tapi melemah)",
+  lagging: "🔴 Lagi Lesu (lemah & melemah)",
+  improving: "🔵 Mulai Bangkit (lemah tapi membaik)",
 };
 
 export default function RRGPanel({

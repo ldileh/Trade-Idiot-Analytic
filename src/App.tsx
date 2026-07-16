@@ -258,8 +258,8 @@ export default function App() {
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
                     ⭐ Rekomendasi
                   </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Relative Rotation Graph — rotasi momentum saham per sektor">
-                    ⚡ Momentum
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Peta Arah Sektor — posisi tiap saham dibanding sektornya">
+                    ⚡ Arah Sektor
                   </button>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
                     🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
@@ -381,8 +381,8 @@ export default function App() {
       <Modal
         open={showRRG}
         variant="drawer"
-        title="⚡ Analisa Momentum Relatif (RRG)"
-        subtitle="Relative Rotation Graph: posisi tiap saham dibanding benchmark sektornya. Kuadran kanan-atas (Leading) = kuat & menguat; kiri-bawah (Lagging) = lemah & melemah. Klik kode saham untuk membukanya di grafik."
+        title="⚡ Peta Arah Sektor (RRG)"
+        subtitle="Posisi tiap saham dibanding benchmark sektornya. Kanan-atas (Lagi Naik Daun) = kuat & menguat; kiri-bawah (Lagi Lesu) = lemah & melemah. Klik kode saham untuk membukanya di grafik."
         onClose={() => setShowRRG(false)}
       >
         <RRGPanel
