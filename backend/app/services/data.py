@@ -32,24 +32,30 @@ class DataError(Exception):
     """Raised when no usable price data could be retrieved for a ticker."""
 
 
-def _realtime_close(ticker: str) -> float | None:
+def _realtime_close(ticker: str, key: str | None = None) -> float | None:
     """Latest realtime US price from Finnhub, or None if unavailable.
 
-    Fails soft on missing key, IDX tickers, network errors, or a non-positive
-    quote — every miss just leaves the yfinance close in place.
+    `key` overrides the env-configured key (BYOK — the user can supply their own
+    Finnhub key via the Data Source settings instead of a .env file). Fails soft
+    on missing key, IDX tickers, network errors, or a non-positive quote — every
+    miss just leaves the yfinance close in place.
     """
-    if not _FINNHUB_KEY or ticker.endswith(".JK"):
+    finnhub_key = (key or _FINNHUB_KEY).strip()
+    if not finnhub_key or ticker.endswith(".JK"):
         return None
 
+    # Cache per (ticker, key): a different key must do its own lookup, so a bad
+    # BYOK key can't return a price a valid key cached under the same ticker.
     now = time.time()
-    cached = _QUOTE_CACHE.get(ticker)
+    ck = f"{ticker}\x00{finnhub_key}"
+    cached = _QUOTE_CACHE.get(ck)
     if cached and (now - cached[0]) < _QUOTE_TTL_SECONDS:
         return cached[1]
 
     try:
         resp = requests.get(
             "https://finnhub.io/api/v1/quote",
-            params={"symbol": ticker, "token": _FINNHUB_KEY},
+            params={"symbol": ticker, "token": finnhub_key},
             timeout=4,
         )
         price = float(resp.json().get("c") or 0.0)
@@ -58,7 +64,7 @@ def _realtime_close(ticker: str) -> float | None:
     if price <= 0:
         return None
 
-    _QUOTE_CACHE[ticker] = (now, price)
+    _QUOTE_CACHE[ck] = (now, price)
     return price
 
 
@@ -104,7 +110,12 @@ def _session_flags(idx: pd.DatetimeIndex) -> list[bool]:
 
 
 def get_ohlcv(
-    ticker: str, interval: str, range_: str, prepost: bool = False, realtime: bool = True
+    ticker: str,
+    interval: str,
+    range_: str,
+    prepost: bool = False,
+    realtime: bool = True,
+    finnhub_key: str | None = None,
 ) -> pd.DataFrame:
     """Fetch OHLCV for a ticker. Cached for `_CACHE_TTL_SECONDS`.
 
@@ -123,7 +134,10 @@ def get_ohlcv(
     if not ticker:
         raise DataError("Ticker must not be empty.")
 
-    key = (ticker, interval, range_, prepost, realtime)
+    # Include the effective Finnhub key so a keyed (realtime) request never
+    # returns a frame cached from the delayed/no-key path — or from a different
+    # key. (The key value only ever lives in this in-process dict, never logged.)
+    key = (ticker, interval, range_, prepost, realtime, finnhub_key or "")
     now = time.time()
 
     with _LOCK:
@@ -164,7 +178,7 @@ def get_ohlcv(
     # during pre/post-market), so applying it would overwrite the correct pre/post
     # price from Yahoo with a stale regular-hours one.
     last_extended = bool(df["Extended"].iloc[-1])
-    rt = _realtime_close(ticker) if realtime and not last_extended else None
+    rt = _realtime_close(ticker, finnhub_key) if realtime and not last_extended else None
     if rt is not None:
         df.loc[df.index[-1], "Close"] = rt
     df.attrs["source"] = "finnhub" if rt is not None else "yahoo"

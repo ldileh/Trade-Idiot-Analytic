@@ -8,6 +8,7 @@ import MomentumPanel from "./components/MomentumPanel";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
 import RecommendationsPanel from "./components/RecommendationsPanel";
+import SettingsPanel from "./components/SettingsPanel";
 import RRGPanel from "./components/RRGPanel";
 import OwnershipPanel from "./components/OwnershipPanel";
 import PortfolioPanel, { PositionSummary } from "./components/PortfolioPanel";
@@ -57,6 +58,7 @@ export default function App() {
   const [showOwnership, setShowOwnership] = useState(false);
   const [showFundamentals, setShowFundamentals] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [holdings, setHoldings] = useState<Holding[]>(loadHoldings);
 
   // Mutasi portofolio selalu lewat sini agar localStorage ikut tersimpan.
@@ -295,6 +297,9 @@ export default function App() {
                   <button type="button" className="btn-primary btn-sm" onClick={() => setShowBacktest(true)} disabled={!hasData}>
                     🧪 Uji strategi
                   </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowSettings(true)} title="Sumber Data (BYOK) — pilih gratis/tertunda atau API key sendiri untuk real-time">
+                    ⚙️ Sumber Data
+                  </button>
                 </span>
               </div>
             </div>
@@ -433,6 +438,17 @@ export default function App() {
         onClose={() => setShowBacktest(false)}
       >
         <BacktestPanel ticker={query.ticker} interval={query.interval} range={query.range} />
+      </Modal>
+
+      {/* Popup Sumber Data (BYOK) — pilih provider per fitur + API key sendiri */}
+      <Modal
+        open={showSettings}
+        variant="drawer"
+        title="⚙️ Sumber Data"
+        subtitle="Pilih dari mana data diambil per fitur: Default (gratis, sedikit tertunda) atau pakai API key milikmu sendiri untuk real-time. Key hanya disimpan di komputermu. Tanpa mengubah apa pun, app tetap jalan seperti biasa."
+        onClose={() => setShowSettings(false)}
+      >
+        <SettingsPanel onClose={() => setShowSettings(false)} />
       </Modal>
     </div>
   );

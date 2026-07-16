@@ -1,7 +1,7 @@
 """GET /prices — OHLCV candles for a ticker."""
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, Header, HTTPException, Query
 
 from app.models import Candle, Interval, PricesResponse, Range
 from app.services.data import DataError
@@ -17,9 +17,13 @@ def get_prices(
     range: Range = "1y",
     prepost: bool = False,
     realtime: bool = True,
+    # BYOK: the user's own Finnhub key from the Data Source settings, sent as a
+    # header so it never lands in the URL/query logs. Absent -> env key / delayed.
+    x_key_finnhub: str | None = Header(default=None),
 ) -> PricesResponse:
     try:
-        df = get_provider("prices").get_historical(ticker, interval, range, prepost, realtime)
+        provider = get_provider("prices", finnhub_key=x_key_finnhub)
+        df = provider.get_historical(ticker, interval, range, prepost, realtime)
     except DataError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
