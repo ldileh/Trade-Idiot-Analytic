@@ -2,7 +2,7 @@
 id: 013
 title: Backfill historis massal (Stooq + IDX EOD) + cache lokal SQLite
 branch: task/013-backfill-historis-cache-sqlite
-status: backlog
+status: in-progress
 created: 2026-07-16
 ---
 
