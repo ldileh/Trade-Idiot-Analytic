@@ -6,23 +6,30 @@
 // Key hanya tersimpan lokal di mesin user; frontend meneruskannya ke backend
 // lewat header per request (lihat api/client.ts). Tanpa pengaturan apa pun,
 // perilaku app identik dengan default.
-export type Feature = "prices" | "fundamentals" | "ownership";
 export type Mode = "hemat" | "realtime";
 
-// Nama provider yang bisa dipilih per fitur. "default" = jalur gratis bawaan
-// (Yahoo/KSEI). Provider eksternal (finnhub/fmp/sectors/twelvedata) aktif hanya
-// bila user mengisi key-nya (task 018 menambah adapter-nya di backend).
+// Fundamental dipilih terpisah per pasar (US & IDX) karena sumbernya berbeda —
+// user bisa punya key FMP untuk saham US sekaligus Sectors.app untuk saham IDX,
+// dan keduanya dipakai sesuai kode saham yang sedang dibuka.
 export interface Settings {
   mode: Mode;
-  providers: Record<Feature, string>; // feature -> provider name
+  providers: {
+    prices: string;
+    fundamentals_us: string;
+    fundamentals_id: string;
+    ownership: string;
+  };
   keys: Record<string, string>; // provider name -> API key
 }
+
+// Fitur yang punya pilihan provider (untuk membangun header per request).
+export type Feature = keyof Settings["providers"];
 
 const KEY = "data_settings";
 
 export const DEFAULT_SETTINGS: Settings = {
   mode: "hemat",
-  providers: { prices: "default", fundamentals: "default", ownership: "default" },
+  providers: { prices: "default", fundamentals_us: "default", fundamentals_id: "default", ownership: "default" },
   keys: {},
 };
 
@@ -46,14 +53,24 @@ export function saveSettings(s: Settings) {
 
 // Headers that carry the user's choices to the backend for one request.
 // Empty when everything is default, so a plain request behaves exactly as before.
+// Fundamentals is market-specific (fundamentals_us / fundamentals_id) and can't
+// be resolved without a ticker, so it's handled per-request in api/client.ts
+// (fundamentalsHeader) and skipped here.
 export function settingsHeaders(s: Settings): Record<string, string> {
   const h: Record<string, string> = {};
   if (s.mode === "realtime") h["X-Realtime"] = "1";
-  for (const [feat, prov] of Object.entries(s.providers)) {
-    if (prov && prov !== "default") h[`X-Provider-${feat}`] = prov;
-  }
+  if (s.providers.prices !== "default") h["X-Provider-prices"] = s.providers.prices;
+  if (s.providers.ownership !== "default") h["X-Provider-ownership"] = s.providers.ownership;
   for (const [prov, key] of Object.entries(s.keys)) {
     if (key.trim()) h[`X-Key-${prov}`] = key.trim();
   }
   return h;
+}
+
+// The fundamentals provider header for a specific ticker, picking the US or IDX
+// choice by the ticker's market. Empty when that market is on Default.
+export function fundamentalsHeader(s: Settings, ticker: string): Record<string, string> {
+  const isID = ticker.trim().toUpperCase().endsWith(".JK");
+  const prov = isID ? s.providers.fundamentals_id : s.providers.fundamentals_us;
+  return prov && prov !== "default" ? { "X-Provider-fundamentals": prov } : {};
 }

@@ -381,6 +381,23 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .tb-group { display: inline-flex; gap: 6px; }
 .tb-sep { width: 1px; align-self: stretch; min-height: 22px; background: var(--border-strong); margin: 0 2px; }
 
+/* Toolbar dropdown menu (folds rarely-used actions behind one button). */
+.menu-wrap { position: relative; display: inline-flex; }
+.menu-pop {
+  position: absolute; top: calc(100% + 6px); right: 0; z-index: 60;
+  display: flex; flex-direction: column; gap: 2px; min-width: 190px; padding: 6px;
+  background: var(--surface); border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm); box-shadow: 0 10px 30px rgba(18, 24, 40, .18);
+}
+.menu-pop button {
+  display: flex; align-items: center; gap: 6px; width: 100%; text-align: left;
+  padding: 8px 10px; font-size: 13px; font-weight: 600; border: none; border-radius: 8px;
+  background: transparent; color: var(--text); cursor: pointer;
+}
+.menu-pop button:hover:not(:disabled) { background: var(--surface-2); }
+.menu-pop button:disabled { opacity: .45; cursor: not-allowed; }
+.menu-pop .count { margin-left: auto; }
+
 /* Active indicators shown below the chart instead of crowding the toolbar. */
 .active-indicators { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
 .toolbar-right .count {

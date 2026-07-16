@@ -14,16 +14,22 @@ import { InfoTip } from "./ui";
 
 // Provider yang tersedia per fitur. "default" selalu ada (gratis). Provider
 // eksternal aktif hanya bila key-nya diisi (adapter backend menyusul di task 018).
+// Fundamental dipisah US & IDX: sumbernya beda, dan user bisa punya key untuk
+// keduanya sekaligus (FMP untuk saham US, Sectors.app untuk saham IDX). App
+// memilih otomatis sesuai kode saham yang dibuka.
 const PROVIDERS: Record<Feature, { value: string; label: string; keyName?: string }[]> = {
   prices: [
     { value: "default", label: "Default — Yahoo (gratis, ±15 menit tertunda)" },
     { value: "finnhub", label: "Finnhub (real-time US, key sendiri)", keyName: "finnhub" },
     { value: "twelvedata", label: "Twelve Data (bar tertunda, key sendiri)", keyName: "twelvedata" },
   ],
-  fundamentals: [
+  fundamentals_us: [
     { value: "default", label: "Default — Yahoo (gratis)" },
-    { value: "fmp", label: "Financial Modeling Prep (US, key sendiri)", keyName: "fmp" },
-    { value: "sectors", label: "Sectors.app (IDX, key sendiri)", keyName: "sectors" },
+    { value: "fmp", label: "Financial Modeling Prep (key sendiri)", keyName: "fmp" },
+  ],
+  fundamentals_id: [
+    { value: "default", label: "Default — Yahoo (gratis)" },
+    { value: "sectors", label: "Sectors.app (key sendiri)", keyName: "sectors" },
   ],
   ownership: [
     { value: "default", label: "Default — KSEI (gratis, IDX)" },
@@ -33,7 +39,8 @@ const PROVIDERS: Record<Feature, { value: string; label: string; keyName?: strin
 
 const FEATURE_LABEL: Record<Feature, string> = {
   prices: "Harga & grafik",
-  fundamentals: "Fundamental",
+  fundamentals_us: "Fundamental — saham US",
+  fundamentals_id: "Fundamental — saham Indonesia (IDX)",
   ownership: "Kepemilikan (IDX)",
 };
 

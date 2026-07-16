@@ -16,7 +16,7 @@ import OwnershipPanel from "./components/OwnershipPanel";
 import PortfolioPanel, { PositionSummary } from "./components/PortfolioPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { addHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
-import { Card, Modal } from "./components/ui";
+import { Card, Menu, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
 import type { Candle, FundamentalsResponse, IndicatorSpec, Interval, MomentumResponse, PatternsResponse, PricesResponse } from "./types";
@@ -258,17 +258,8 @@ export default function App() {
                   </button>
                 </span>
                 <span className="tb-sep" />
-                {/* Grup Analisa */}
+                {/* Grup Baca simbol (sering dipakai) */}
                 <span className="tb-group">
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRecommendations(true)} title="10 saham paling bullish dari watchlist, dianalisa otomatis">
-                    ⭐ Rekomendasi
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Peta Arah Sektor — posisi tiap saham dibanding sektornya">
-                    ⚡ Arah Sektor
-                  </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowMarketMap(true)} title="Peta Pasar — treemap favorit/sektor: besar=market cap, hijau=naik, merah=turun">
-                    🗺️ Peta Pasar
-                  </button>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
                     🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
                     {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
@@ -276,37 +267,46 @@ export default function App() {
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowFundamentals(true)} disabled={!hasData} title={fundamentals?.bias_text}>
                     📒 Fundamental {fundamentals && <span className="count">{fundamentals.score}</span>}
                   </button>
-                </span>
-                <span className="tb-sep" />
-                {/* Grup Data pasar (IDX) */}
-                <span className="tb-group">
-                  <button
-                    type="button"
-                    className="btn-ghost btn-sm"
-                    onClick={() => setShowOwnership(true)}
-                    disabled={!query.ticker.toUpperCase().endsWith(".JK")}
-                    title={
-                      query.ticker.toUpperCase().endsWith(".JK")
-                        ? "Kepemilikan Lokal/Asing dari KSEI (saham IDX)"
-                        : "Hanya tersedia untuk saham Indonesia (IDX, kode berakhiran .JK)"
-                    }
-                  >
-                    💰 Kepemilikan
-                  </button>
-                </span>
-                <span className="tb-sep" />
-                {/* Grup Alat & strategi */}
-                <span className="tb-group">
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowIndicators(true)} disabled={!hasData}>
                     📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}
                   </button>
                   <button type="button" className="btn-primary btn-sm" onClick={() => setShowBacktest(true)} disabled={!hasData}>
                     🧪 Uji strategi
                   </button>
-                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowSettings(true)} title="Sumber Data (BYOK) — pilih gratis/tertunda atau API key sendiri untuk real-time">
-                    ⚙️ Sumber Data
-                  </button>
                 </span>
+                <span className="tb-sep" />
+                {/* Menu Jelajah — analisa lintas-saham yang lebih jarang dibuka */}
+                <Menu label="🧭 Jelajah" title="Analisa lintas saham & pasar">
+                  {(close) => (
+                    <>
+                      <button type="button" onClick={() => { setShowRecommendations(true); close(); }}>
+                        ⭐ Rekomendasi
+                      </button>
+                      <button type="button" onClick={() => { setShowRRG(true); close(); }}>
+                        ⚡ Arah Sektor
+                      </button>
+                      <button type="button" onClick={() => { setShowMarketMap(true); close(); }}>
+                        🗺️ Peta Pasar
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowOwnership(true); close(); }}
+                        disabled={!query.ticker.toUpperCase().endsWith(".JK")}
+                        title={query.ticker.toUpperCase().endsWith(".JK") ? "Kepemilikan Lokal/Asing dari KSEI (saham IDX)" : "Hanya untuk saham IDX (.JK)"}
+                      >
+                        💰 Kepemilikan
+                      </button>
+                    </>
+                  )}
+                </Menu>
+                {/* Menu Pengaturan */}
+                <Menu label="⚙️" title="Pengaturan">
+                  {(close) => (
+                    <button type="button" onClick={() => { setShowSettings(true); close(); }} title="Sumber Data (BYOK)">
+                      ⚙️ Sumber Data
+                    </button>
+                  )}
+                </Menu>
               </div>
             </div>
 
@@ -464,16 +464,16 @@ export default function App() {
         <SettingsPanel onClose={() => setShowSettings(false)} />
       </Modal>
 
-      {/* Popup Peta Pasar — treemap favorit/sektor: ukuran=market cap, warna=perubahan */}
+      {/* Popup Peta Pasar — dialog besar; treemap favorit/portofolio/sektor */}
       <Modal
         open={showMarketMap}
-        variant="drawer"
         title="🗺️ Peta Pasar"
-        subtitle="Sekilas apa yang naik/turun hari ini. Kotak besar = perusahaan besar (market cap), hijau = naik, merah = turun. Pilih daftar favoritmu atau satu sektor IDX. Klik kotak untuk membukanya di grafik."
+        subtitle="Sekilas apa yang naik/turun hari ini. Kotak besar = perusahaan besar (market cap), hijau = naik, merah = turun. Pilih daftar favorit, portofolio, atau satu sektor IDX. Klik kotak untuk membukanya di grafik."
         onClose={() => setShowMarketMap(false)}
       >
         <MarketMapPanel
           ticker={query.ticker}
+          holdings={holdings}
           onPick={(sym) => {
             setQuery((q) => ({ ...q, ticker: sym }));
             setShowMarketMap(false);

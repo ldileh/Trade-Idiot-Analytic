@@ -16,7 +16,7 @@ import type {
   Range,
   RRGResponse,
 } from "../types";
-import { loadSettings, settingsHeaders } from "../settings";
+import { fundamentalsHeader, loadSettings, settingsHeaders } from "../settings";
 
 // Browser-dev default; inside Tauri the real port comes from the shell (below).
 export const BACKEND_BASE =
@@ -120,7 +120,10 @@ export function getMomentum(
 
 export function getFundamentals(ticker: string): Promise<FundamentalsResponse> {
   const q = new URLSearchParams({ ticker });
-  return request<FundamentalsResponse>(`/fundamentals?${q}`);
+  // Fundamentals source is chosen per market (US vs IDX), resolved from the ticker.
+  return request<FundamentalsResponse>(`/fundamentals?${q}`, {
+    headers: fundamentalsHeader(loadSettings(), ticker),
+  });
 }
 
 export function getOwnership(ticker: string, months = 12): Promise<OwnershipResponse> {

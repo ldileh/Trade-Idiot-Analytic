@@ -51,6 +51,58 @@ export function Card({ children, className }: { children: ReactNode; className?:
   return <section className={`card${className ? ` ${className}` : ""}`}>{children}</section>;
 }
 
+// A toolbar dropdown: a trigger button that reveals a small popover of actions.
+// Closes on outside-click, Escape, or when an item is chosen. Keeps the toolbar
+// tidy by folding rarely-used actions behind one button.
+export function Menu({
+  label,
+  title,
+  children,
+}: {
+  label: ReactNode;
+  title?: string;
+  children: (close: () => void) => ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDown(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [open]);
+
+  return (
+    <div className="menu-wrap" ref={ref}>
+      <button
+        type="button"
+        className="btn-ghost btn-sm"
+        title={title}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        onClick={() => setOpen((v) => !v)}
+      >
+        {label} <span aria-hidden>▾</span>
+      </button>
+      {open && (
+        <div className="menu-pop" role="menu">
+          {children(() => setOpen(false))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Popup that closes on backdrop click or Escape; renders nothing when shut.
 // `variant="drawer"` slides in from the right with a see-through backdrop, so the
 // chart behind stays visible (used for the live indicator picker); the default

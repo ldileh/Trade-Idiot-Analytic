@@ -1,11 +1,12 @@
 // Peta Pasar — treemap: ukuran kotak = market cap, warna = perubahan harga hari
-// ini (hijau naik, merah turun). Sumber: daftar favorit user atau satu sektor
+// ini (hijau naik, merah turun). Sumber: favorit, portofolio, atau satu sektor
 // IDX. Klik kotak untuk membuka simbol itu di grafik utama. Layout squarified
 // ditulis tangan (tanpa library chart), dirender dengan div CSS berposisi absolut.
 import { useEffect, useMemo, useState } from "react";
 import { getMarketMap } from "../api/client";
 import { loadFavorites } from "../favorites";
 import { isIDX } from "../format";
+import type { Holding } from "../portfolio";
 import { SECTORS } from "../sectors";
 import type { MarketMapTile } from "../types";
 
@@ -58,17 +59,27 @@ function color(pct: number | null): string {
   return c >= 0 ? `rgba(22,163,74,${0.25 + c * 0.6})` : `rgba(220,38,38,${0.25 + -c * 0.6})`;
 }
 
-export default function MarketMapPanel({ ticker, onPick }: { ticker: string; onPick: (sym: string) => void }) {
+export default function MarketMapPanel({
+  ticker,
+  holdings,
+  onPick,
+}: {
+  ticker: string;
+  holdings: Holding[];
+  onPick: (sym: string) => void;
+}) {
   const market = isIDX(ticker) ? "id" : "us";
   const idxSectors = useMemo(() => SECTORS.filter((s) => s.market === "id"), []);
   const favs = useMemo(() => loadFavorites()[market], [market]);
+  const portfolioSyms = useMemo(() => holdings.map((h) => h.sym), [holdings]);
 
-  // Source: favorites of the current market, or a chosen IDX sector.
+  // Source: favorites of the current market, the user's portfolio, or an IDX sector.
   const [source, setSource] = useState<string>("fav");
   const symbols = useMemo(() => {
     if (source === "fav") return favs;
+    if (source === "portfolio") return portfolioSyms;
     return idxSectors.find((s) => s.key === source)?.symbols ?? [];
-  }, [source, favs, idxSectors]);
+  }, [source, favs, portfolioSyms, idxSectors]);
 
   const [tiles, setTiles] = useState<MarketMapTile[] | null>(null);
   const [loading, setLoading] = useState(false);
@@ -85,7 +96,7 @@ export default function MarketMapPanel({ ticker, onPick }: { ticker: string; onP
     return () => { cancelled = true; };
   }, [symbols]);
 
-  const W = 100, H = 62; // treemap aspect (percent units); container sets real px.
+  const W = 100, H = 58; // treemap aspect (percent units); container sets real px.
   const rects = useMemo(() => {
     if (!tiles || tiles.length === 0) return [];
     // Fallback weight 1 for unknown market cap so it still gets a (small) box.
@@ -98,6 +109,7 @@ export default function MarketMapPanel({ ticker, onPick }: { ticker: string; onP
       <div className="rrg-controls" style={{ marginBottom: 8 }}>
         <select value={source} onChange={(e) => setSource(e.target.value)} aria-label="Pilih sumber Peta Pasar">
           <option value="fav">⭐ Favorit ({market.toUpperCase()}) — {favs.length} saham</option>
+          <option value="portfolio">💼 Portofolio — {portfolioSyms.length} saham</option>
           {idxSectors.map((s) => (
             <option key={s.key} value={s.key}>{s.label}</option>
           ))}
@@ -110,12 +122,16 @@ export default function MarketMapPanel({ ticker, onPick }: { ticker: string; onP
       {loading && <div className="loading-bar" />}
       {tiles && tiles.length === 0 && !loading && (
         <p className="muted" style={{ fontSize: 13 }}>
-          {source === "fav" ? "Belum ada favorit. Tambahkan saham ke favorit (⭐) dulu." : "Belum cukup data untuk sektor ini."}
+          {source === "fav"
+            ? "Belum ada favorit. Tambahkan saham ke favorit (⭐) dulu."
+            : source === "portfolio"
+              ? "Portofolio masih kosong. Catat sahammu di menu 💼 Portofolio dulu."
+              : "Belum cukup data untuk sektor ini."}
         </p>
       )}
 
       {rects.length > 0 && (
-        <div style={{ position: "relative", width: "100%", aspectRatio: `${W} / ${H}`, borderRadius: 8, overflow: "hidden" }}>
+        <div style={{ position: "relative", width: "100%", aspectRatio: `${W} / ${H}`, minHeight: 420, borderRadius: 8, overflow: "hidden" }}>
           {rects.map((r) => (
             <button
               key={r.sym}
