@@ -15,16 +15,17 @@ IDX + bandarmology), dan Twelve Data (indikator delayed) — semua free tier den
 milik user.
 
 ## Spec / kriteria selesai
-- [ ] `FMPProvider.get_fundamentals` — laporan keuangan/rasio US dari FMP free tier
-      (250 req/hari), dipetakan ke schema `FundamentalsResponse` yang ada.
-- [ ] `SectorsProvider` — fundamental + ownership/bandarmology saham IDX dari Sectors.app
-      free tier, dipetakan ke schema fundamentals & ownership yang ada.
-- [ ] `TwelveDataProvider.get_historical` — bar delayed (free tier 800 req/hari) sebagai
-      sumber alternatif untuk scan/momentum.
-- [ ] Semua adapter muncul sebagai pilihan di layar Sumber Data (task 017) dan hanya
-      aktif bila user mengisi key-nya.
-- [ ] Kena rate limit / key salah → pesan jelas ke user + fallback ke provider default,
-      bukan crash.
+- [x] `FMPProvider.get_fundamentals` — rasio TTM US dari FMP (profile+ratios-ttm),
+      dipetakan ke schema `FundamentalsResponse` (delegasi ke scorer bersama).
+- [~] `SectorsProvider` — fundamental IDX dipetakan; ownership/bandarmology masih
+      raise → fallback KSEI (endpoint Sectors belum diverifikasi tanpa key).
+- [x] `TwelveDataProvider.get_historical` — bar delayed (time_series) sbg sumber
+      alternatif untuk scan/momentum.
+- [x] Semua adapter muncul sebagai pilihan di layar Sumber Data (task 017, +twelvedata)
+      dan hanya aktif bila user mengisi key-nya (`build()` return None bila keyless).
+- [x] Kena rate limit / key salah → pesan jelas (401/403/429 → ProviderKeyError) +
+      fallback ke provider default, bukan crash. Diuji: FMP/TwelveData/Sectors key palsu
+      semua fallback ke default, key tidak bocor ke log.
 
 ## Catatan teknis
 - Bergantung pada task 012 (interface) dan 017 (BYOK settings).
