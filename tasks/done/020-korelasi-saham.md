@@ -2,7 +2,7 @@
 id: 020
 title: Saham yang Gerak Bareng (korelasi)
 branch: task/020-korelasi-saham
-status: in-progress
+status: done
 created: 2026-07-16
 ---
 
