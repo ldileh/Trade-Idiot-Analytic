@@ -26,7 +26,9 @@ class PricesResponse(BaseModel):
     ticker: str
     interval: str
     range: str
-    source: Literal["yahoo", "finnhub"] = "yahoo"  # where the latest price came from
+    # where the latest price came from ("cache" = served from the local SQLite
+    # bar cache, backfilled from stooq/yahoo — see services/bars_cache.py)
+    source: Literal["yahoo", "finnhub", "cache", "stooq"] = "yahoo"
     candles: list[Candle]
 
 
