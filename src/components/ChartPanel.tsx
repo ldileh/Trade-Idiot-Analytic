@@ -35,16 +35,21 @@ export default function ChartPanel({
   candles,
   lines,
   patterns = [],
+  buyPrice = null,
 }: {
   candles: Candle[];
   lines: SeriesLine[];
   patterns?: Pattern[];
+  // Harga beli rata-rata dari portofolio (null = saham ini tidak dimiliki).
+  buyPrice?: number | null;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
   // Horizontal line marking the latest ("current") price; redrawn each update.
   const nowLineRef = useRef<IPriceLine | null>(null);
+  // Horizontal line marking the user's average buy price (from the portfolio).
+  const buyLineRef = useRef<IPriceLine | null>(null);
   // Candle count last fitted to view — so auto-refresh updates don't reset zoom.
   const fittedLenRef = useRef(0);
   // Active line series keyed by indicator series name, so we add/remove only what changed.
@@ -158,6 +163,26 @@ export default function ChartPanel({
       }
     }
   }, [candles]);
+
+  // Draw/refresh the "harga beli kamu" line when this ticker is in the portfolio.
+  useEffect(() => {
+    const series = candleRef.current;
+    if (!series) return;
+    if (buyLineRef.current) {
+      series.removePriceLine(buyLineRef.current);
+      buyLineRef.current = null;
+    }
+    if (buyPrice != null) {
+      buyLineRef.current = series.createPriceLine({
+        price: buyPrice,
+        color: "#4f46e5",
+        lineWidth: 1,
+        lineStyle: 2, // dashed
+        axisLabelVisible: true,
+        title: "📌 Harga beli kamu",
+      });
+    }
+  }, [buyPrice]);
 
   // Reconcile line series with the requested `lines`: create new, update existing,
   // drop removed. This is what lets indicators add/remove without a full reload.
