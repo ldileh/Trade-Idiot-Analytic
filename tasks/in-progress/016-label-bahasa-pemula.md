@@ -2,7 +2,7 @@
 id: 016
 title: Label bahasa pemula konsisten di seluruh app
 branch: task/016-label-bahasa-pemula
-status: backlog
+status: in-progress
 created: 2026-07-16
 ---
 
