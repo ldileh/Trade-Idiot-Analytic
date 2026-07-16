@@ -171,6 +171,11 @@ checkout baru. `externalBin` di `tauri.conf.json` me-resolve ke `bin/backend`.
 Ide pengembangan lanjutan (opsional): caching/persistence, lebih banyak strategi backtest,
 signing installer, auto-update.
 
+Roadmap fase berikutnya (sumber data swappable/BYOK, dua skor fundamental, momentum
+multi-timeframe, label pemula, peta pasar) ada di [PLAN.md](PLAN.md) — dipecah menjadi
+task **012–020** di board `tasks/backlog/`. Sumber riset & API di
+[REFERENCES.md](REFERENCES.md).
+
 ---
 
 ## 8. Konvensi kerja

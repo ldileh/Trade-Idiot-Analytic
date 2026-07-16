@@ -96,6 +96,8 @@ Trade-Idiot-Analytic/
 │   └── app/{models.py, routers/, services/}
 ├── tasks/                  # task board (backlog / in-progress / done)
 ├── AGENTS.md               # panduan & keputusan arsitektur (untuk agen AI)
+├── PLAN.md                 # roadmap pengembangan (sumber data BYOK, skor fundamental, label pemula)
+├── REFERENCES.md           # sumber riset & dokumentasi API pendukung roadmap
 └── package.json · vite.config.ts · tsconfig.json
 ```
 
@@ -166,7 +168,8 @@ terpasang di mesin pengguna.
 
 > Detail lengkap konvensi, keputusan arsitektur, dan pitfall dependency ada di
 > [AGENTS.md](AGENTS.md). Catatan: yang membuat backend memilih `ta` (bukan pandas-ta),
-> `yfinance 1.4.1`, dan Python 3.12 dijelaskan di sana.
+> `yfinance 1.4.1`, dan Python 3.12 dijelaskan di sana. Roadmap pengembangan berikutnya
+> ada di [PLAN.md](PLAN.md), dengan sumber risetnya di [REFERENCES.md](REFERENCES.md).
 
 ---
 
