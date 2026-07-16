@@ -105,12 +105,12 @@ def _ma_cross(close: np.ndarray, index: pd.DatetimeIndex) -> Pattern | None:
         return {
             "key": "golden_cross", "label": "Golden Cross", "kind": "bullish", "at": at,
             "summary": f"Rata-rata cepat {recent}berada di atas rata-rata lambat ({name}).",
-            "detail": "Golden Cross: garis rata-rata jangka pendek menembus ke atas garis jangka panjang — sering dibaca sebagai sinyal awal momentum naik.",
+            "detail": "Golden Cross: garis rata-rata jangka pendek menembus ke atas garis jangka panjang — sering dibaca sebagai sinyal awal momentum naik. Cek juga indikator lain, tidak selalu akurat.",
         }
     return {
         "key": "death_cross", "label": "Death Cross", "kind": "bearish", "at": at,
         "summary": f"Rata-rata cepat {recent}berada di bawah rata-rata lambat ({name}).",
-        "detail": "Death Cross: garis rata-rata jangka pendek menembus ke bawah garis jangka panjang — sering dibaca sebagai sinyal awal momentum turun.",
+        "detail": "Death Cross: garis rata-rata jangka pendek menembus ke bawah garis jangka panjang — sering dibaca sebagai sinyal awal momentum turun. Cek juga indikator lain, tidak selalu akurat.",
     }
 
 
@@ -199,15 +199,15 @@ def _rsi_extreme(close: np.ndarray, index: pd.DatetimeIndex) -> Pattern | None:
     at = _epoch(index, len(close) - 1)
     if rsi >= 70:
         return {
-            "key": "overbought", "label": "RSI Kemahalan (Overbought)", "kind": "bearish", "at": at,
+            "key": "overbought", "label": "Sudah Kemahalan", "kind": "bearish", "at": at,
             "summary": f"Meteran RSI {rsi:.0f} (di atas 70) — harga sudah naik banyak.",
-            "detail": "RSI di atas 70 menandakan harga mungkin sudah 'kemahalan' jangka pendek dan rawan koreksi turun.",
+            "detail": "Meteran RSI di atas 70: harga mungkin sudah 'kemahalan' jangka pendek dan rawan koreksi turun. Cek juga indikator lain, tidak selalu akurat.",
         }
     if rsi <= 30:
         return {
-            "key": "oversold", "label": "RSI Kemurahan (Oversold)", "kind": "bullish", "at": at,
+            "key": "oversold", "label": "Sudah Kemurahan", "kind": "bullish", "at": at,
             "summary": f"Meteran RSI {rsi:.0f} (di bawah 30) — harga sudah turun banyak.",
-            "detail": "RSI di bawah 30 menandakan harga mungkin sudah 'kemurahan' jangka pendek dan rawan memantul naik.",
+            "detail": "Meteran RSI di bawah 30: harga mungkin sudah 'kemurahan' jangka pendek dan rawan memantul naik. Cek juga indikator lain, tidak selalu akurat.",
         }
     return None
 

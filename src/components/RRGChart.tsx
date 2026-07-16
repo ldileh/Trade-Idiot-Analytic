@@ -38,7 +38,7 @@ export default function RRGChart({ data }: { data: RRGResponse }) {
   const cy = sy(100);
 
   return (
-    <svg className="rrg-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Relative Rotation Graph">
+    <svg className="rrg-svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Peta Arah Sektor">
       {/* Quadrant backgrounds */}
       <rect x={cx} y={PAD} width={W - PAD - cx} height={cy - PAD} fill="#16a34a" opacity="0.07" />
       <rect x={cx} y={cy} width={W - PAD - cx} height={H - PAD - cy} fill="#eab308" opacity="0.07" />
@@ -49,11 +49,11 @@ export default function RRGChart({ data }: { data: RRGResponse }) {
       <line x1={cx} y1={PAD} x2={cx} y2={H - PAD} stroke="var(--border-strong)" strokeWidth="1" />
       <line x1={PAD} y1={cy} x2={W - PAD} y2={cy} stroke="var(--border-strong)" strokeWidth="1" />
 
-      {/* Quadrant labels */}
-      <text x={W - PAD - 4} y={PAD + 14} textAnchor="end" className="rrg-q good">Leading</text>
-      <text x={W - PAD - 4} y={H - PAD - 6} textAnchor="end" className="rrg-q warn">Weakening</text>
-      <text x={PAD + 4} y={H - PAD - 6} className="rrg-q bad">Lagging</text>
-      <text x={PAD + 4} y={PAD + 14} className="rrg-q info">Improving</text>
+      {/* Quadrant labels — Peta Arah Sektor (PLAN.md §3) */}
+      <text x={W - PAD - 4} y={PAD + 14} textAnchor="end" className="rrg-q good">Lagi Naik Daun</text>
+      <text x={W - PAD - 4} y={H - PAD - 6} textAnchor="end" className="rrg-q warn">Mulai Melemah</text>
+      <text x={PAD + 4} y={H - PAD - 6} className="rrg-q bad">Lagi Lesu</text>
+      <text x={PAD + 4} y={PAD + 14} className="rrg-q info">Mulai Bangkit</text>
 
       {/* Axis hints */}
       <text x={W / 2} y={H - 8} textAnchor="middle" className="rrg-axis">Kekuatan Relatif (RS-Ratio) →</text>
