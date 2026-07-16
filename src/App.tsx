@@ -9,7 +9,9 @@ import PriceSummary from "./components/PriceSummary";
 import RecommendationsPanel from "./components/RecommendationsPanel";
 import RRGPanel from "./components/RRGPanel";
 import OwnershipPanel from "./components/OwnershipPanel";
+import PortfolioPanel, { PositionSummary } from "./components/PortfolioPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
+import { addHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
@@ -52,6 +54,14 @@ export default function App() {
   const [showRRG, setShowRRG] = useState(false);
   const [showOwnership, setShowOwnership] = useState(false);
   const [showFundamentals, setShowFundamentals] = useState(false);
+  const [showPortfolio, setShowPortfolio] = useState(false);
+  const [holdings, setHoldings] = useState<Holding[]>(loadHoldings);
+
+  // Mutasi portofolio selalu lewat sini agar localStorage ikut tersimpan.
+  const updateHoldings = useCallback((next: Holding[]) => {
+    saveHoldings(next);
+    setHoldings(next);
+  }, []);
 
   // Prices follow the ticker/interval/range query.
   useEffect(() => {
@@ -171,6 +181,8 @@ export default function App() {
   }
 
   const hasData = candles.length > 0;
+  // Posisi portofolio untuk saham yang sedang tampil (kalau dimiliki).
+  const holding = holdings.find((h) => h.sym === query.ticker.trim().toUpperCase()) ?? null;
 
   return (
     <div className="app">
@@ -195,6 +207,7 @@ export default function App() {
             {hasData && (
               <div style={{ marginTop: 14 }}>
                 <PriceSummary ticker={query.ticker} candles={candles} />
+                {holding && <PositionSummary holding={holding} last={candles[candles.length - 1].close} />}
                 <span className={`source-badge ${source}`}>
                   {source === "finnhub" ? "● Finnhub realtime" : "● Yahoo Finance (±15 mnt)"}
                 </span>
@@ -225,6 +238,13 @@ export default function App() {
                 >
                   <span className={refreshing ? "spin" : ""} aria-hidden style={{ display: "inline-block" }}>↻</span>
                 </button>
+                <span className="tb-sep" />
+                {/* Grup Portofolio */}
+                <span className="tb-group">
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPortfolio(true)} title="Catat saham yang kamu miliki. Saat saham itu tampil di grafik, garis harga beli & untung/rugi ikut muncul.">
+                    💼 Portofolio {holdings.length > 0 && <span className="count">{holdings.length}</span>}
+                  </button>
+                </span>
                 <span className="tb-sep" />
                 {/* Grup Analisa */}
                 <span className="tb-group">
@@ -274,7 +294,7 @@ export default function App() {
 
             <div className="chart-wrap fade" style={{ opacity: loading ? 0.5 : 1, marginTop: 12 }}>
               {hasData ? (
-                <ChartPanel candles={candles} lines={lines} patterns={patterns?.patterns ?? []} />
+                <ChartPanel candles={candles} lines={lines} patterns={patterns?.patterns ?? []} buyPrice={holding?.price ?? null} />
               ) : (
                 <div className="empty">Belum ada data. Cari & pilih saham di sebelah kiri dulu, ya. 👈</div>
               )}
@@ -376,6 +396,25 @@ export default function App() {
         onClose={() => setShowOwnership(false)}
       >
         <OwnershipPanel open={showOwnership} ticker={query.ticker} />
+      </Modal>
+
+      {/* Popup portofolio — catat kepemilikan; klik posisi untuk membukanya di grafik */}
+      <Modal
+        open={showPortfolio}
+        variant="drawer"
+        title="💼 Portofolio"
+        subtitle="Catat saham yang kamu miliki: kode, jumlah lembar, dan harga beli. Saat saham itu tampil di grafik, garis 📌 harga beli & hitungan untung/rugi muncul otomatis. Data tersimpan di komputermu sendiri."
+        onClose={() => setShowPortfolio(false)}
+      >
+        <PortfolioPanel
+          holdings={holdings}
+          onAdd={(sym, qty, price) => updateHoldings(addHolding(holdings, sym, qty, price))}
+          onRemove={(sym) => updateHoldings(removeHolding(holdings, sym))}
+          onPick={(sym) => {
+            setQuery((q) => ({ ...q, ticker: sym }));
+            setShowPortfolio(false);
+          }}
+        />
       </Modal>
 
       {/* Popup uji strategi (backtest) */}
