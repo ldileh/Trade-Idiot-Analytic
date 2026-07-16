@@ -18,6 +18,7 @@ const PROVIDERS: Record<Feature, { value: string; label: string; keyName?: strin
   prices: [
     { value: "default", label: "Default — Yahoo (gratis, ±15 menit tertunda)" },
     { value: "finnhub", label: "Finnhub (real-time US, key sendiri)", keyName: "finnhub" },
+    { value: "twelvedata", label: "Twelve Data (bar tertunda, key sendiri)", keyName: "twelvedata" },
   ],
   fundamentals: [
     { value: "default", label: "Default — Yahoo (gratis)" },
