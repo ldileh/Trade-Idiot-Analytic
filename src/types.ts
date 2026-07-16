@@ -167,6 +167,21 @@ export interface FundamentalsResponse {
   altman?: AltmanScore | null;
 }
 
+export interface MomentumReading {
+  label: string; // "1 Bulan" | "3 Bulan" | "6 Bulan"
+  pct: number | null;
+  direction: "naik" | "turun" | "datar" | null;
+  enough_data: boolean;
+}
+
+export interface MomentumResponse {
+  ticker: string;
+  readings: MomentumReading[];
+  volume_ok: boolean | null;
+  volume_text: string;
+  headline: string;
+}
+
 export interface EquityPoint {
   time: number;
   equity: number;

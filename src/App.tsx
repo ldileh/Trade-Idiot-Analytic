@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
-import { getFundamentals, getPatterns, getPrices, postIndicators } from "./api/client";
+import { getFundamentals, getMomentum, getPatterns, getPrices, postIndicators } from "./api/client";
 import BacktestPanel from "./components/BacktestPanel";
 import ChartPanel, { type SeriesLine } from "./components/ChartPanel";
 import FundamentalsPanel from "./components/FundamentalsPanel";
 import IndicatorControls from "./components/IndicatorControls";
+import MomentumPanel from "./components/MomentumPanel";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
 import RecommendationsPanel from "./components/RecommendationsPanel";
@@ -15,7 +16,7 @@ import { addHolding, loadHoldings, removeHolding, saveHoldings, type Holding } f
 import { Card, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
-import type { Candle, FundamentalsResponse, IndicatorSpec, Interval, PatternsResponse } from "./types";
+import type { Candle, FundamentalsResponse, IndicatorSpec, Interval, MomentumResponse, PatternsResponse, PricesResponse } from "./types";
 
 const DEFAULT_QUERY: TickerQuery = { ticker: "AAPL", interval: "1d", range: "1y" };
 
@@ -37,10 +38,11 @@ export default function App() {
   const [query, setQuery] = useState<TickerQuery>(DEFAULT_QUERY);
   const [specs, setSpecs] = useState<IndicatorSpec[]>([]);
   const [candles, setCandles] = useState<Candle[]>([]);
-  const [source, setSource] = useState<"yahoo" | "finnhub">("yahoo");
+  const [source, setSource] = useState<PricesResponse["source"]>("yahoo");
   const [lines, setLines] = useState<SeriesLine[]>([]);
   const [patterns, setPatterns] = useState<PatternsResponse | null>(null);
   const [patternsLoading, setPatternsLoading] = useState(false);
+  const [momentum, setMomentum] = useState<MomentumResponse | null>(null);
   const [fundamentals, setFundamentals] = useState<FundamentalsResponse | null>(null);
   const [fundamentalsLoading, setFundamentalsLoading] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -91,10 +93,15 @@ export default function App() {
     let cancelled = false;
     setPatternsLoading(true);
     setPatterns(null);
+    setMomentum(null);
     getPatterns(query.ticker, query.interval, query.range)
       .then((res) => !cancelled && setPatterns(res))
       .catch(() => !cancelled && setPatterns(null))
       .finally(() => !cancelled && setPatternsLoading(false));
+    // Kekuatan Tren (1/3/6mo) — always from 1y daily, independent of the chart range.
+    getMomentum(query.ticker)
+      .then((res) => !cancelled && setMomentum(res))
+      .catch(() => !cancelled && setMomentum(null));
     return () => {
       cancelled = true;
     };
@@ -335,6 +342,7 @@ export default function App() {
         subtitle="Pola grafik klasik yang ditemukan otomatis dari harga yang sedang ditampilkan. Bahan bantu keputusan, BUKAN jaminan. Selalu kelola risiko."
         onClose={() => setShowPatterns(false)}
       >
+        <MomentumPanel data={momentum} />
         <PatternPanel data={patterns} loading={patternsLoading} />
       </Modal>
 

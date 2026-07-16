@@ -4,7 +4,16 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import backtest, fundamentals, indicators, ownership, patterns, prices, rrg
+from app.routers import (
+    backtest,
+    fundamentals,
+    indicators,
+    momentum,
+    ownership,
+    patterns,
+    prices,
+    rrg,
+)
 
 
 def create_app() -> FastAPI:
@@ -35,5 +44,6 @@ def create_app() -> FastAPI:
     app.include_router(ownership.router)
     app.include_router(backtest.router)
     app.include_router(fundamentals.router)
+    app.include_router(momentum.router)
 
     return app
