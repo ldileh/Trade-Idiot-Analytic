@@ -8,6 +8,7 @@ from app.routers import (
     backtest,
     fundamentals,
     indicators,
+    marketmap,
     momentum,
     ownership,
     patterns,
@@ -45,5 +46,6 @@ def create_app() -> FastAPI:
     app.include_router(backtest.router)
     app.include_router(fundamentals.router)
     app.include_router(momentum.router)
+    app.include_router(marketmap.router)
 
     return app

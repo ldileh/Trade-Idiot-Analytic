@@ -185,6 +185,19 @@ class FundamentalsResponse(BaseModel):
     altman: AltmanScore | None = None        # Skor Risiko Bangkrut
 
 
+class MarketMapTile(BaseModel):
+    """One treemap box: size = market_cap, color = change_pct."""
+
+    sym: str
+    market_cap: float | None  # None = unknown (rendered at placeholder size)
+    change_pct: float | None
+    price: float | None
+
+
+class MarketMapResponse(BaseModel):
+    tiles: list[MarketMapTile]
+
+
 class MomentumReading(BaseModel):
     """One formation-period momentum reading (1/3/6 bulan)."""
 
