@@ -2,7 +2,7 @@
 id: 018
 title: Adapter provider opsional (FMP, Sectors.app, Twelve Data)
 branch: task/018-adapter-provider-opsional
-status: backlog
+status: in-progress
 created: 2026-07-16
 ---
 
