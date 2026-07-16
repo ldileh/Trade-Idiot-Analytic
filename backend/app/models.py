@@ -185,6 +185,23 @@ class FundamentalsResponse(BaseModel):
     altman: AltmanScore | None = None        # Skor Risiko Bangkrut
 
 
+class MomentumReading(BaseModel):
+    """One formation-period momentum reading (1/3/6 bulan)."""
+
+    label: str  # "1 Bulan" | "3 Bulan" | "6 Bulan"
+    pct: float | None  # cumulative return %, None if not enough history
+    direction: Literal["naik", "turun", "datar"] | None
+    enough_data: bool
+
+
+class MomentumResponse(BaseModel):
+    ticker: str
+    readings: list[MomentumReading]
+    volume_ok: bool | None  # OBV-confirmed up-move ("Minat Beli"), None if sparse
+    volume_text: str
+    headline: str
+
+
 class EquityPoint(BaseModel):
     time: int
     equity: float

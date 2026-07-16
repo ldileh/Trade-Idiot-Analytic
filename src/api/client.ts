@@ -7,6 +7,7 @@ import type {
   IndicatorRequest,
   IndicatorResponse,
   Interval,
+  MomentumResponse,
   PatternsResponse,
   OwnershipResponse,
   PricesResponse,
@@ -91,6 +92,14 @@ export function getRRG(
     tail: String(tail),
   });
   return request<RRGResponse>(`/rrg?${q}`);
+}
+
+export function getMomentum(
+  ticker: string,
+  interval: Interval = "1d",
+): Promise<MomentumResponse> {
+  const q = new URLSearchParams({ ticker, interval });
+  return request<MomentumResponse>(`/momentum?${q}`);
 }
 
 export function getFundamentals(ticker: string): Promise<FundamentalsResponse> {

@@ -14,13 +14,13 @@ terlihat apakah tren baru mulai atau sudah lama, alih-alih satu pembacaan RSI/St
 tunggal. Dasar: riset momentum Jegadeesh & Titman.
 
 ## Spec / kriteria selesai
-- [ ] Backend menghitung return/momentum periode formasi 1, 3, 6 bulan dari OHLCV
-      ter-cache (task 013) — tanpa panggilan API tambahan.
-- [ ] Konfirmasi tren menyertakan volume (OBV/VWAP), bukan MA crossover sendirian;
-      sinyal MA cross diberi caveat sesuai [PLAN.md](../../PLAN.md) §2.
-- [ ] UI menampilkan "Kekuatan Tren: 1 Bulan / 3 Bulan / 6 Bulan" (tiga angka + arah)
-      di halaman simbol.
-- [ ] Label & tip Bahasa Indonesia sesuai tabel [PLAN.md](../../PLAN.md) §3.
+- [x] Backend menghitung return/momentum periode formasi 1, 3, 6 bulan dari OHLCV
+      ter-cache (task 013) — tanpa panggilan API tambahan (endpoint /momentum, 1y daily cache).
+- [x] Konfirmasi tren menyertakan volume (OBV → "Minat Beli"), bukan MA crossover sendirian;
+      caveat sinyal palsu bila volume tidak mendukung sesuai [PLAN.md](../../PLAN.md) §2.
+- [x] UI menampilkan "Kekuatan Tren: 1 Bulan / 3 Bulan / 6 Bulan" (tiga angka + arah)
+      di halaman simbol (MomentumPanel di drawer Pola).
+- [x] Label & tip Bahasa Indonesia sesuai tabel [PLAN.md](../../PLAN.md) §3.
 
 ## Catatan teknis
 - Bergantung pada task 013 (cache OHLCV lokal).
