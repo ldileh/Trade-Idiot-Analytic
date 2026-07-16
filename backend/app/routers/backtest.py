@@ -7,7 +7,8 @@ import pandas as pd
 from fastapi import APIRouter, HTTPException
 
 from app.models import BacktestRequest, BacktestResponse, EquityPoint
-from app.services.data import DataError, get_ohlcv
+from app.services.data import DataError
+from app.services.provider import get_provider
 from app.services.strategies import run_backtest
 
 router = APIRouter(tags=["backtest"])
@@ -50,7 +51,7 @@ def _clean(value):
 @router.post("/backtest", response_model=BacktestResponse)
 def run(req: BacktestRequest) -> BacktestResponse:
     try:
-        df = get_ohlcv(req.ticker, req.interval, req.range)
+        df = get_provider("prices").get_historical(req.ticker, req.interval, req.range)
     except DataError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 

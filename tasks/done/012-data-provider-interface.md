@@ -2,7 +2,7 @@
 id: 012
 title: Interface DataProvider di backend
 branch: task/012-data-provider-interface
-status: backlog
+status: done
 created: 2026-07-16
 ---
 
@@ -15,16 +15,16 @@ ditukar per fitur/per user (dasar untuk task 013, 017, 018), tanpa mengubah peri
 endpoint yang ada.
 
 ## Spec / kriteria selesai
-- [ ] Ada base class/protocol `DataProvider` dengan method `get_quote`, `get_historical`,
+- [x] Ada base class/protocol `DataProvider` dengan method `get_quote`, `get_historical`,
       `get_fundamentals`, `get_ownership_flow` (boleh `NotImplementedError` untuk yang
       belum relevan per provider).
-- [ ] Implementasi default `YahooProvider` membungkus logika yfinance yang ada sekarang;
+- [x] Implementasi default `YahooProvider` membungkus logika yfinance yang ada sekarang;
       patch realtime Finnhub untuk US tetap berfungsi seperti sebelumnya.
-- [ ] Logika KSEI di `ownership.py` terekspos lewat interface yang sama
+- [x] Logika KSEI di `ownership.py` terekspos lewat interface yang sama
       (`get_ownership_flow`).
-- [ ] Router (`prices`, `fundamentals`, `ownership`, dst.) memanggil lewat interface,
+- [x] Router (`prices`, `fundamentals`, `ownership`, dst.) memanggil lewat interface,
       bukan langsung ke yfinance.
-- [ ] Respons semua endpoint identik dengan sebelum refactor (termasuk field `source`).
+- [x] Respons semua endpoint identik dengan sebelum refactor (termasuk field `source`).
 
 ## Catatan teknis
 - Titik masuk: `backend/app/services/data.py` (yfinance + Finnhub + cache TTL 30 detik),

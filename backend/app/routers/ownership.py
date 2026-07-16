@@ -9,7 +9,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models import OwnershipResponse
-from app.services.ownership import OwnershipError, get_ownership, top_holders
+from app.services.ownership import OwnershipError
+from app.services.provider import get_provider
 
 router = APIRouter(tags=["ownership"])
 
@@ -20,9 +21,8 @@ def get_ownership_endpoint(
     months: int = Query(12, ge=1, le=36, description="Month-end snapshots to include"),
 ) -> OwnershipResponse:
     try:
-        data = get_ownership(ticker, months)
-        holders = top_holders(ticker)
+        data = get_provider("ownership").get_ownership_flow(ticker, months)
     except OwnershipError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    return OwnershipResponse(**data, top_holders=holders)
+    return OwnershipResponse(**data)

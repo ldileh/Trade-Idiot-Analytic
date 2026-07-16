@@ -4,7 +4,8 @@ from __future__ import annotations
 from fastapi import APIRouter, HTTPException, Query
 
 from app.models import Candle, Interval, PricesResponse, Range
-from app.services.data import DataError, get_ohlcv
+from app.services.data import DataError
+from app.services.provider import get_provider
 
 router = APIRouter(tags=["prices"])
 
@@ -18,7 +19,7 @@ def get_prices(
     realtime: bool = True,
 ) -> PricesResponse:
     try:
-        df = get_ohlcv(ticker, interval, range, prepost, realtime)
+        df = get_provider("prices").get_historical(ticker, interval, range, prepost, realtime)
     except DataError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
