@@ -2,7 +2,7 @@
 id: 014
 title: Skor Kesehatan Keuangan (Piotroski) + Skor Risiko Bangkrut (Altman)
 branch: task/014-skor-piotroski-altman
-status: backlog
+status: in-progress
 created: 2026-07-16
 ---
 
