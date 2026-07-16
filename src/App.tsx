@@ -7,6 +7,7 @@ import IndicatorControls from "./components/IndicatorControls";
 import MomentumPanel from "./components/MomentumPanel";
 import PatternPanel, { KIND_EMOJI } from "./components/PatternPanel";
 import PriceSummary from "./components/PriceSummary";
+import MarketMapPanel from "./components/MarketMapPanel";
 import RecommendationsPanel from "./components/RecommendationsPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import RRGPanel from "./components/RRGPanel";
@@ -59,6 +60,7 @@ export default function App() {
   const [showFundamentals, setShowFundamentals] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [showMarketMap, setShowMarketMap] = useState(false);
   const [holdings, setHoldings] = useState<Holding[]>(loadHoldings);
 
   // Mutasi portofolio selalu lewat sini agar localStorage ikut tersimpan.
@@ -263,6 +265,9 @@ export default function App() {
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowRRG(true)} title="Peta Arah Sektor — posisi tiap saham dibanding sektornya">
                     ⚡ Arah Sektor
                   </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowMarketMap(true)} title="Peta Pasar — treemap favorit/sektor: besar=market cap, hijau=naik, merah=turun">
+                    🗺️ Peta Pasar
+                  </button>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPatterns(true)} disabled={!hasData} title={patterns?.bias_text}>
                     🔍 Pola {patterns && KIND_EMOJI[patterns.bias]}
                     {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
@@ -449,6 +454,23 @@ export default function App() {
         onClose={() => setShowSettings(false)}
       >
         <SettingsPanel onClose={() => setShowSettings(false)} />
+      </Modal>
+
+      {/* Popup Peta Pasar — treemap favorit/sektor: ukuran=market cap, warna=perubahan */}
+      <Modal
+        open={showMarketMap}
+        variant="drawer"
+        title="🗺️ Peta Pasar"
+        subtitle="Sekilas apa yang naik/turun hari ini. Kotak besar = perusahaan besar (market cap), hijau = naik, merah = turun. Pilih daftar favoritmu atau satu sektor IDX. Klik kotak untuk membukanya di grafik."
+        onClose={() => setShowMarketMap(false)}
+      >
+        <MarketMapPanel
+          ticker={query.ticker}
+          onPick={(sym) => {
+            setQuery((q) => ({ ...q, ticker: sym }));
+            setShowMarketMap(false);
+          }}
+        />
       </Modal>
     </div>
   );

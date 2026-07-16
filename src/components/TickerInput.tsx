@@ -3,6 +3,7 @@ import type { Interval, Range } from "../types";
 import { ALLOWED_RANGES, INTERVAL_LABEL, INTERVAL_LOOKBACK_NOTE, INTERVAL_ORDER, RANGE_LABEL } from "../help";
 import type { Market } from "../stocks";
 import { POPULAR_SYMS_BY_MARKET, STOCKS_BY_MARKET } from "../stocks";
+import { FAV_KEY, loadFavorites as loadFavs } from "../favorites";
 import { InfoTip } from "./ui";
 
 export interface TickerQuery {
@@ -15,17 +16,6 @@ export interface TickerQuery {
 
 // Extended hours exist only for US intraday candles; daily+ and IDX have none.
 const INTRADAY: Interval[] = ["1h", "30m", "15m", "5m", "1m"];
-
-// Favorites are per-market and persisted in localStorage so they survive reloads.
-const FAV_KEY = "favStocks";
-function loadFavs(): Record<Market, string[]> {
-  try {
-    const v = JSON.parse(localStorage.getItem(FAV_KEY) || "{}");
-    return { us: Array.isArray(v.us) ? v.us : [], id: Array.isArray(v.id) ? v.id : [] };
-  } catch {
-    return { us: [], id: [] };
-  }
-}
 
 // Pick the look-back to keep when the interval changes: reuse the current range
 // if it's still valid, otherwise fall back to the longest range that interval

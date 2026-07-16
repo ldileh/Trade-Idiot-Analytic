@@ -167,6 +167,17 @@ export interface FundamentalsResponse {
   altman?: AltmanScore | null;
 }
 
+export interface MarketMapTile {
+  sym: string;
+  market_cap: number | null;
+  change_pct: number | null;
+  price: number | null;
+}
+
+export interface MarketMapResponse {
+  tiles: MarketMapTile[];
+}
+
 export interface MomentumReading {
   label: string; // "1 Bulan" | "3 Bulan" | "6 Bulan"
   pct: number | null;

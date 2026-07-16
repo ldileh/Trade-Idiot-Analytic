@@ -7,6 +7,7 @@ import type {
   IndicatorRequest,
   IndicatorResponse,
   Interval,
+  MarketMapResponse,
   MomentumResponse,
   PatternsResponse,
   OwnershipResponse,
@@ -96,6 +97,11 @@ export function getRRG(
     tail: String(tail),
   });
   return request<RRGResponse>(`/rrg?${q}`);
+}
+
+export function getMarketMap(tickers: string[]): Promise<MarketMapResponse> {
+  const q = new URLSearchParams({ tickers: tickers.join(",") });
+  return request<MarketMapResponse>(`/marketmap?${q}`);
 }
 
 export function getMomentum(
