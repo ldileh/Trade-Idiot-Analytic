@@ -38,7 +38,39 @@ const REFRESH_MS: Record<Interval, number> = {
 };
 
 export default function App() {
-  const [query, setQuery] = useState<TickerQuery>(DEFAULT_QUERY);
+  // Beberapa grafik dalam tab: tiap tab satu query (saham/interval/range). Tab
+  // aktif menyetir semua panel & grafik; ganti tab = ganti query aktif.
+  const [tabs, setTabs] = useState<TickerQuery[]>([DEFAULT_QUERY]);
+  const [active, setActive] = useState(0);
+  const query = tabs[active] ?? DEFAULT_QUERY;
+  // Mutasi query selalu mengenai tab yang aktif (mendukung nilai atau updater).
+  const setQuery = useCallback(
+    (next: TickerQuery | ((prev: TickerQuery) => TickerQuery)) => {
+      setTabs((prev) =>
+        prev.map((t, i) =>
+          i === active ? (typeof next === "function" ? (next as (p: TickerQuery) => TickerQuery)(t) : next) : t,
+        ),
+      );
+    },
+    [active],
+  );
+  const addTab = useCallback(() => {
+    // Tab baru meniru query saat ini (interval/range ikut), tinggal ganti sahamnya.
+    setTabs((prev) => [...prev, { ...(prev[active] ?? DEFAULT_QUERY) }]);
+    setActive(tabs.length); // panjang sebelum append = indeks item baru
+  }, [active, tabs.length]);
+  const closeTab = useCallback(
+    (idx: number) => {
+      setTabs((prev) => (prev.length === 1 ? prev : prev.filter((_, i) => i !== idx)));
+      setActive((cur) => {
+        if (idx < cur) return cur - 1; // tab sebelum yang aktif hilang → geser
+        if (idx === cur) return Math.min(cur, tabs.length - 2); // clamp ke tab terakhir
+        return cur;
+      });
+    },
+    [tabs.length],
+  );
+
   const [specs, setSpecs] = useState<IndicatorSpec[]>([]);
   const [candles, setCandles] = useState<Candle[]>([]);
   const [source, setSource] = useState<PricesResponse["source"]>("yahoo");
@@ -213,7 +245,7 @@ export default function App() {
         {/* Kolom kiri — pilih saham + ringkasan harga */}
         <aside className="side">
           <Card>
-            <TickerInput value={query} loading={loading} onSubmit={setQuery} />
+            <TickerInput value={query} loading={loading} holdings={holdings} onSubmit={setQuery} />
             {loading && <div className="loading-bar" style={{ marginTop: 12 }} />}
             {error && <div className="alert" role="alert">{error}</div>}
             {hasData && (
@@ -232,6 +264,39 @@ export default function App() {
         {/* Kolom kanan — grafik besar + alat */}
         <section className="main">
           <Card className="chart-card">
+            <div className="chart-tabs" role="tablist" aria-label="Grafik terbuka">
+              {tabs.map((t, i) => (
+                <div
+                  key={i}
+                  role="tab"
+                  aria-selected={i === active}
+                  tabIndex={0}
+                  className={`chart-tab${i === active ? " active" : ""}`}
+                  onClick={() => setActive(i)}
+                  onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && setActive(i)}
+                  title={`${t.ticker} — ${t.interval} / ${t.range}`}
+                >
+                  <span className="chart-tab-label">{t.ticker.replace(".JK", "") || "—"}</span>
+                  {tabs.length > 1 && (
+                    <span
+                      className="x"
+                      role="button"
+                      aria-label={`Tutup grafik ${t.ticker}`}
+                      title="Tutup grafik ini"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        closeTab(i);
+                      }}
+                    >
+                      ×
+                    </span>
+                  )}
+                </div>
+              ))}
+              <button type="button" className="chart-tab-add" onClick={addTab} title="Buka grafik baru (tab)" aria-label="Buka grafik baru">
+                +
+              </button>
+            </div>
             <div className="toolbar">
               <div className="toolbar-left">
                 <span className="legend">
@@ -395,10 +460,9 @@ export default function App() {
         />
       </Modal>
 
-      {/* Popup momentum relatif (RRG) — rotasi saham per sektor vs benchmark */}
+      {/* Popup momentum relatif (RRG) — dialog lebar; rotasi saham per sektor vs benchmark */}
       <Modal
         open={showRRG}
-        variant="drawer"
         title="⚡ Peta Arah Sektor (RRG)"
         subtitle="Posisi tiap saham dibanding benchmark sektornya. Kanan-atas (Lagi Naik Daun) = kuat & menguat; kiri-bawah (Lagi Lesu) = lemah & melemah. Klik kode saham untuk membukanya di grafik."
         onClose={() => setShowRRG(false)}
@@ -433,6 +497,7 @@ export default function App() {
         onClose={() => setShowPortfolio(false)}
       >
         <PortfolioPanel
+          open={showPortfolio}
           holdings={holdings}
           onAdd={(sym, qty, price) => updateHoldings(addHolding(holdings, sym, qty, price))}
           onRemove={(sym) => updateHoldings(removeHolding(holdings, sym))}

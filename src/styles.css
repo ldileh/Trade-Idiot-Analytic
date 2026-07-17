@@ -278,6 +278,26 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .bal-legend span { display: inline-flex; align-items: center; gap: 6px; }
 .bal-legend .sq { width: 12px; height: 12px; border-radius: 3px; }
 
+/* ---- chart tabs (multiple charts) ------------------------------------------ */
+.chart-tabs { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; border-bottom: 1.5px solid var(--border); padding-bottom: 8px; }
+.chart-tab {
+  display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+  background: var(--surface-2); border: 1.5px solid var(--border-strong);
+  border-radius: 8px 8px 0 0; padding: 6px 12px; font-size: 13px; font-weight: 700;
+  color: var(--text); transition: all .12s; user-select: none;
+}
+.chart-tab:hover { border-color: var(--accent); color: var(--accent); }
+.chart-tab.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.chart-tab .x { font-size: 15px; line-height: 1; opacity: .8; }
+.chart-tab .x:hover { opacity: 1; }
+.chart-tab-add {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 30px; height: 30px; font-size: 18px; line-height: 1; cursor: pointer;
+  background: var(--surface-2); border: 1.5px solid var(--border-strong);
+  border-radius: 8px; color: var(--text);
+}
+.chart-tab-add:hover { border-color: var(--accent); color: var(--accent); }
+
 /* ---- chart legend ---------------------------------------------------------- */
 .legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
 .legend .dot { display: inline-flex; align-items: center; gap: 6px; }

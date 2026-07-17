@@ -2,8 +2,10 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Interval, Range } from "../types";
 import { ALLOWED_RANGES, INTERVAL_LABEL, INTERVAL_LOOKBACK_NOTE, INTERVAL_ORDER, RANGE_LABEL } from "../help";
 import type { Market } from "../stocks";
-import { POPULAR_SYMS_BY_MARKET, STOCKS_BY_MARKET } from "../stocks";
+import { STOCKS_BY_MARKET } from "../stocks";
 import { FAV_KEY, loadFavorites as loadFavs } from "../favorites";
+import { isIDX } from "../format";
+import type { Holding } from "../portfolio";
 import { InfoTip } from "./ui";
 
 export interface TickerQuery {
@@ -29,10 +31,12 @@ function clampRange(interval: Interval, range: Range): Range {
 export default function TickerInput({
   value,
   loading,
+  holdings,
   onSubmit,
 }: {
   value: TickerQuery;
   loading: boolean;
+  holdings: Holding[];
   onSubmit: (q: TickerQuery) => void;
 }) {
   const [ticker, setTicker] = useState(value.ticker);
@@ -62,13 +66,13 @@ export default function TickerInput({
     });
   }
 
-  // Follow the ticker when it's changed from outside (Rekomendasi/Momentum/
-  // Kepemilikan picks set query.ticker) so the search box shows the new code.
+  // Follow the ticker when it's changed from outside (tab switch, Rekomendasi/
+  // Momentum/Kepemilikan picks set query.ticker) so the search box shows the new
+  // code and the Pasar toggle matches its market (.JK = IDX).
   useEffect(() => {
     setTicker(value.ticker);
+    if (value.ticker.trim()) setMarket(isIDX(value.ticker) ? "id" : "us");
   }, [value.ticker]);
-
-  const quickSyms = POPULAR_SYMS_BY_MARKET[market];
 
   const allowedRanges = ALLOWED_RANGES[interval];
 
@@ -92,12 +96,16 @@ export default function TickerInput({
   function submit(next?: Partial<TickerQuery>) {
     const nextInterval = next?.interval ?? interval;
     const wantPrepost = next?.prepost ?? prepost;
+    const t = (next?.ticker ?? ticker).trim().toUpperCase();
+    // Market follows the ticker's suffix (.JK = IDX), not the toggle state — so a
+    // picked/typed code always gets the right extended-hours treatment.
+    const isUS = !isIDX(t);
     const q: TickerQuery = {
-      ticker: (next?.ticker ?? ticker).trim().toUpperCase(),
+      ticker: t,
       interval: nextInterval,
       range: clampRange(nextInterval, next?.range ?? range),
       // Only request extended hours where it applies (US intraday).
-      prepost: market === "us" && INTRADAY.includes(nextInterval) && wantPrepost,
+      prepost: isUS && INTRADAY.includes(nextInterval) && wantPrepost,
       realtime: next?.realtime ?? realtime,
     };
     if (!q.ticker) return;
@@ -108,6 +116,12 @@ export default function TickerInput({
     setTicker(sym);
     setOpen(false);
     submit({ ticker: sym });
+  }
+
+  // Pilih dari portofolio: toggle Pasar ikut otomatis ke US/IDX sesuai sahamnya.
+  function pickHolding(sym: string) {
+    setMarket(isIDX(sym) ? "id" : "us");
+    pickStock(sym);
   }
 
   function changeInterval(next: Interval) {
@@ -139,21 +153,24 @@ export default function TickerInput({
         </button>
       </div>
 
-      <div className="chips" style={{ marginBottom: 12 }}>
-        <span className="muted" style={{ fontSize: 13, fontWeight: 600, alignSelf: "center" }}>
-          Coba cepat:
-        </span>
-        {quickSyms.map((sym) => (
-          <button
-            key={sym}
-            type="button"
-            className={`chip${ticker.toUpperCase() === sym ? " active" : ""}`}
-            onClick={() => pickStock(sym)}
-          >
-            {sym}
-          </button>
-        ))}
-      </div>
+      {holdings.length > 0 && (
+        <div className="chips" style={{ marginBottom: 12 }}>
+          <span className="muted" style={{ fontSize: 13, fontWeight: 600, alignSelf: "center" }}>
+            💼 Portofolio:
+          </span>
+          {holdings.map((h) => (
+            <button
+              key={h.sym}
+              type="button"
+              className={`chip${ticker.toUpperCase() === h.sym ? " active" : ""}`}
+              onClick={() => pickHolding(h.sym)}
+              title={`Buka ${h.sym} — Pasar ikut pindah ke ${isIDX(h.sym) ? "Indonesia" : "US"}`}
+            >
+              {h.sym.replace(".JK", "")}
+            </button>
+          ))}
+        </div>
+      )}
 
       {favSyms.length > 0 && (
         <div className="chips" style={{ marginBottom: 12 }}>
