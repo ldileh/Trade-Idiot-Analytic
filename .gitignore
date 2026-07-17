@@ -34,3 +34,6 @@ Thumbs.db
 
 # Claude Code — local-only settings (shared skills/ are committed)
 .claude/settings.local.json
+
+# graphify — generated knowledge graph; rebuild per-machine with /graphify-sync
+graphify-out/
