@@ -206,6 +206,20 @@ export interface MomentumResponse {
   headline: string;
 }
 
+export interface NewsItem {
+  title: string;
+  publisher: string;
+  url: string;
+  time: number; // Unix epoch seconds, 0 if unknown
+  sentiment: number; // -1 negatif, 0 netral, +1 positif
+}
+
+export interface NewsResponse {
+  ticker: string;
+  items: NewsItem[];
+  sentiment: number; // sum of item sentiments
+}
+
 export interface EquityPoint {
   time: number;
   equity: number;

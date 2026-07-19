@@ -12,6 +12,8 @@ const QUADRANT_COLOR: Record<RRGSymbol["quadrant"], string> = {
   improving: "#3b82f6",
 };
 
+const bare = (s: string) => s.replace(".JK", "");
+
 const W = 560;
 const H = 460;
 const PAD = 36;
@@ -73,11 +75,85 @@ export default function RRGChart({ data }: { data: RRGResponse }) {
             ))}
             <circle cx={head.x} cy={head.y} r="5" fill={color} stroke="#fff" strokeWidth="1.5" />
             <text x={head.x + 8} y={head.y + 4} className="rrg-label" fill={color}>
-              {s.symbol.replace(".JK", "")}
+              {bare(s.symbol)}
             </text>
           </g>
         );
       })}
     </svg>
+  );
+}
+
+// Compact 2×2 quadrant view: each cell lists the symbols currently sitting in
+// it, matching the RRG chart's layout (top-right = strongest). Clickable chips.
+const GRID: { q: RRGSymbol["quadrant"]; title: string }[] = [
+  { q: "improving", title: "🔵 Mulai Bangkit" },
+  { q: "leading", title: "🟢 Lagi Naik Daun" },
+  { q: "lagging", title: "🔴 Lagi Lesu" },
+  { q: "weakening", title: "🟡 Mulai Melemah" },
+];
+
+export function QuadrantGrid({ data, onPick }: { data: RRGResponse; onPick: (s: string) => void }) {
+  return (
+    <div className="rrg-grid">
+      {GRID.map(({ q, title }) => {
+        const syms = data.symbols.filter((s) => s.quadrant === q);
+        return (
+          <div key={q} className={`rrg-cell${syms.length === 0 ? " empty" : ""}`}>
+            <h4 style={{ color: QUADRANT_COLOR[q] }}>{title}</h4>
+            {syms.length === 0 ? (
+              <span className="muted">— kosong —</span>
+            ) : (
+              <div className="chips">
+                {syms.map((s) => (
+                  <button key={s.symbol} type="button" className="chip" onClick={() => onPick(s.symbol)} title="Buka di grafik">
+                    {bare(s.symbol)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// Strength-ranking view: horizontal bar per symbol showing RS-Ratio (kekuatan)
+// as distance left/right of the center (100), colored by quadrant, plus a
+// momentum arrow from RS-Momentum. Sorted strongest first.
+export function StrengthBars({ data, onPick }: { data: RRGResponse; onPick: (s: string) => void }) {
+  const rows = data.symbols
+    .map((s) => {
+      const head = s.tail[s.tail.length - 1];
+      return { sym: s.symbol, quadrant: s.quadrant, rs: head.x - 100, mom: head.y - 100 };
+    })
+    .sort((a, b) => b.rs - a.rs);
+  // Symmetric scale so the strongest deviation reaches the bar edge.
+  const span = Math.max(1, ...rows.map((r) => Math.abs(r.rs))) * 1.05;
+  return (
+    <div className="rrg-rank">
+      {rows.map((r) => {
+        const color = QUADRANT_COLOR[r.quadrant];
+        const w = (Math.abs(r.rs) / span) * 50; // % of half-width
+        return (
+          <div key={r.sym} className="rrg-rank-row">
+            <button type="button" className="chip" onClick={() => onPick(r.sym)} title="Buka di grafik">
+              {bare(r.sym)}
+            </button>
+            <div className="rrg-bar">
+              <span className="rrg-bar-mid" />
+              <span
+                className="rrg-bar-fill"
+                style={r.rs >= 0 ? { left: "50%", width: `${w}%`, background: color } : { right: "50%", width: `${w}%`, background: color }}
+              />
+            </div>
+            <span className="rrg-mom" style={{ color: r.mom >= 0 ? "var(--up)" : "var(--down)" }}>
+              {r.mom >= 0 ? "▲ menguat" : "▼ melemah"}
+            </span>
+          </div>
+        );
+      })}
+    </div>
   );
 }

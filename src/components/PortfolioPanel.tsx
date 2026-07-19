@@ -3,8 +3,11 @@
 // "harga beli kamu" plus hitungan untung/rugi di ringkasan harga.
 import { useEffect, useState } from "react";
 import { getMarketMap } from "../api/client";
-import { currencyFor, money } from "../format";
+import { currencyFor, isIDX, money, shares } from "../format";
+import { suggest } from "../suggestions";
+import { getNews, getPatterns } from "../api/client";
 import type { Holding } from "../portfolio";
+import type { NewsResponse, PatternsResponse } from "../types";
 import { STOCKS_BY_MARKET } from "../stocks";
 import { InfoTip } from "./ui";
 
@@ -31,8 +34,16 @@ export default function PortfolioPanel({
   const [sym, setSym] = useState("");
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
+  // Satuan jumlah untuk saham IDX: "lot" (×100 lembar, seperti Stockbit) atau
+  // "lembar". US selalu lembar (bisa pecahan). Default lot untuk .JK.
+  const [unit, setUnit] = useState<"lot" | "lembar">("lot");
+  const idxInput = isIDX(sym);
   // Harga terkini per kode (satu batch quote saat panel dibuka) → untuk untung/rugi.
   const [prices, setPrices] = useState<Record<string, number>>({});
+  // Pola per kode (mesin /patterns) → dipakai untuk saran aksi (tahan/jual/tambah).
+  const [patterns, setPatterns] = useState<Record<string, PatternsResponse>>({});
+  // Berita terkini per kode → sentimen ikut menyetir saran + headline ditampilkan.
+  const [news, setNews] = useState<Record<string, NewsResponse>>({});
 
   const syms = holdings.map((h) => h.sym).join(",");
   useEffect(() => {
@@ -46,6 +57,24 @@ export default function PortfolioPanel({
         setPrices(map);
       })
       .catch(() => !cancelled && setPrices({}));
+    // Analisa pola tiap kepemilikan (paralel; yang gagal dilewati, bukan semua).
+    Promise.allSettled(holdings.map((h) => getPatterns(h.sym))).then((results) => {
+      if (cancelled) return;
+      const map: Record<string, PatternsResponse> = {};
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") map[holdings[i].sym] = r.value;
+      });
+      setPatterns(map);
+    });
+    // Berita terkini per kode (paralel, best-effort).
+    Promise.allSettled(holdings.map((h) => getNews(h.sym))).then((results) => {
+      if (cancelled) return;
+      const map: Record<string, NewsResponse> = {};
+      results.forEach((r, i) => {
+        if (r.status === "fulfilled") map[holdings[i].sym] = r.value;
+      });
+      setNews(map);
+    });
     return () => {
       cancelled = true;
     };
@@ -69,7 +98,9 @@ export default function PortfolioPanel({
     const q = Number(qty);
     const p = Number(price);
     if (!sym.trim() || !Number.isFinite(q) || q <= 0 || !Number.isFinite(p) || p <= 0) return;
-    onAdd(sym, q, p);
+    // IDX dalam satuan lot → simpan sebagai lembar (1 lot = 100 lembar).
+    const lembar = idxInput && unit === "lot" ? q * 100 : q;
+    onAdd(sym, lembar, p);
     setSym("");
     setQty("");
     setPrice("");
@@ -92,10 +123,25 @@ export default function PortfolioPanel({
           />
         </label>
         <label className="field" style={{ flex: "1 1 110px" }}>
-          <span>
-            Jumlah lembar <InfoTip text="Berapa lembar saham yang kamu miliki. Untuk saham Indonesia: 1 lot = 100 lembar." />
+          <span style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+            {idxInput && unit === "lot" ? "Jumlah lot" : "Jumlah lembar"}{" "}
+            <InfoTip text="Berapa banyak saham yang kamu miliki. Saham Indonesia: 1 lot = 100 lembar (Stockbit menampilkan lot). Saham US: isi lembar, boleh pecahan." />
+            {idxInput && (
+              <span className="unit-toggle">
+                <button type="button" className={unit === "lot" ? "active" : ""} onClick={() => setUnit("lot")}>lot</button>
+                <button type="button" className={unit === "lembar" ? "active" : ""} onClick={() => setUnit("lembar")}>lembar</button>
+              </span>
+            )}
           </span>
-          <input type="number" min="1" step="any" value={qty} onChange={(e) => setQty(e.target.value)} placeholder="mis. 100" aria-label="Jumlah lembar" />
+          <input
+            type="number"
+            min="0"
+            step="any"
+            value={qty}
+            onChange={(e) => setQty(e.target.value)}
+            placeholder={idxInput && unit === "lot" ? "mis. 574 (lot)" : "mis. 100"}
+            aria-label={idxInput && unit === "lot" ? "Jumlah lot" : "Jumlah lembar"}
+          />
         </label>
         <label className="field" style={{ flex: "1 1 130px" }}>
           <span>
@@ -119,6 +165,10 @@ export default function PortfolioPanel({
             const diff = value != null ? value - cost : null;
             const pct = diff != null && cost !== 0 ? (diff / cost) * 100 : null;
             const up = (diff ?? 0) >= 0;
+            const pat = patterns[h.sym];
+            const nw = news[h.sym];
+            const sg = pat ? suggest(pat, pct, nw?.sentiment ?? 0) : null;
+            const headline = nw?.items[0];
             return (
               <div
                 key={h.sym}
@@ -135,7 +185,7 @@ export default function PortfolioPanel({
                     )}
                   </div>
                   <div className="k">
-                    {h.qty.toLocaleString("id-ID")} lembar @ {money(h.price, h.sym)} · modal {money(cost, h.sym)}
+                    {shares(h.qty, h.sym)} lembar @ {money(h.price, h.sym)} · modal {money(cost, h.sym)}
                   </div>
                   <div className="k" style={{ marginTop: 2, display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
                     {value != null ? (
@@ -149,6 +199,24 @@ export default function PortfolioPanel({
                       <span className="muted">memuat harga…</span>
                     )}
                   </div>
+                  {sg && (
+                    <div className="k" style={{ marginTop: 4, display: "flex", alignItems: "baseline", gap: 6, flexWrap: "wrap" }}>
+                      <span className={`pill sg-${sg.action}`} style={{ fontSize: 12, fontWeight: 700 }}>{sg.label}</span>
+                      <span className="muted" style={{ fontSize: 11.5 }}>{sg.why}</span>
+                    </div>
+                  )}
+                  {headline && (
+                    <div className="k" style={{ marginTop: 3, fontSize: 11.5 }}>
+                      <span title="Sentimen berita">{headline.sentiment > 0 ? "📈" : headline.sentiment < 0 ? "📉" : "📰"}</span>{" "}
+                      {headline.url ? (
+                        <a href={headline.url} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()} style={{ color: "var(--accent)" }}>
+                          {headline.title}
+                        </a>
+                      ) : (
+                        <span className="muted">{headline.title}</span>
+                      )}
+                    </div>
+                  )}
                 </div>
                 <button
                   type="button"
@@ -188,6 +256,8 @@ export default function PortfolioPanel({
 
           <p className="muted" style={{ fontSize: 12, margin: "4px 0 0" }}>
             Klik sebuah posisi untuk membukanya di grafik — garis 📌 harga beli & untung/rugi langsung muncul.
+            <br />
+            Saran aksi (Tahan/Kurangi/Jual/Tambah) dihitung dari pola harga + untung-rugimu + sentimen berita terkini — bahan bantu berpikir, <b>BUKAN ajakan jual/beli</b>.
           </p>
         </div>
       )}
@@ -206,7 +276,7 @@ export function PositionSummary({ holding, last }: { holding: Holding; last: num
   return (
     <div className="mini" style={{ marginTop: 10 }}>
       <div className="k">
-        💼 Posisimu: {holding.qty.toLocaleString("id-ID")} lembar @ {money(holding.price, holding.sym)}
+        💼 Posisimu: {shares(holding.qty, holding.sym)} lembar @ {money(holding.price, holding.sym)}
       </div>
       <div className="v" style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
         {money(value, holding.sym)}

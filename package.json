@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@tauri-apps/api": "^2.0.0",
-    "lightweight-charts": "^4.2.0",
+    "lightweight-charts": "^5.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },
@@ -25,6 +25,8 @@
     "vite": "^6.0.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["esbuild"]
+    "onlyBuiltDependencies": [
+      "esbuild"
+    ]
   }
 }

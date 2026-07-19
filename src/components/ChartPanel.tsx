@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useRef } from "react";
 import {
   createChart,
+  createSeriesMarkers,
+  CandlestickSeries,
+  HistogramSeries,
+  LineSeries,
   type CandlestickData,
+  type HistogramData,
   type IChartApi,
   type IPriceLine,
   type ISeriesApi,
@@ -13,12 +18,40 @@ import {
 import type { Candle, IndicatorSeries, Pattern } from "../types";
 import { colorFor } from "../indicators";
 
-const OSC_SCALE = "osc"; // separate price scale id for oscillator pane
+const OSC_SCALE = "osc"; // price-scale id prefix for oscillator panes
 
 // A named indicator line plus whether it belongs on the price pane (overlay)
 // or the bottom oscillator pane.
 export interface SeriesLine extends IndicatorSeries {
   overlay: boolean;
+}
+
+// TradingView-style MACD histogram colours (green above zero, red below).
+const HIST_UP = "#26a69a";
+const HIST_DOWN = "#ef5350";
+
+// Canonical colours for the well-known oscillator lines, matching TradingView's
+// defaults; anything else falls back to the hashed palette.
+function lineColor(name: string): string {
+  if (name === "MACD") return "#2962ff"; // MACD line — blue
+  if (name === "MACD_signal") return "#ff6d00"; // signal — orange
+  if (/^RSI_/.test(name)) return "#7e57c2"; // RSI — purple
+  return colorFor(name);
+}
+
+// The MACD "diff" line is drawn as a histogram (bars), like TradingView; every
+// other oscillator series is a line. Series names are deterministic (backend).
+function isHistogram(name: string): boolean {
+  return /_hist$/i.test(name);
+}
+
+// Which stacked oscillator pane a series lives in — grouped by indicator so RSI
+// (0–100) and MACD (centred on 0) get separate bands instead of overlapping.
+function oscPane(name: string): string {
+  if (/^RSI_/.test(name)) return "rsi";
+  if (/^ATR_/.test(name)) return "atr";
+  if (/^MACD/.test(name)) return "macd";
+  return "osc";
 }
 
 // Drop warm-up nulls so the line doesn't draw a gap to zero. time+value align 1:1.
@@ -27,6 +60,16 @@ function toLineData(s: IndicatorSeries): LineData[] {
   for (let i = 0; i < s.time.length; i++) {
     const v = s.value[i];
     if (v != null) out.push({ time: s.time[i] as UTCTimestamp, value: v });
+  }
+  return out;
+}
+
+// Histogram points carry a per-bar colour so the bars flip green/red at zero.
+function toHistData(s: IndicatorSeries): HistogramData[] {
+  const out: HistogramData[] = [];
+  for (let i = 0; i < s.time.length; i++) {
+    const v = s.value[i];
+    if (v != null) out.push({ time: s.time[i] as UTCTimestamp, value: v, color: v >= 0 ? HIST_UP : HIST_DOWN });
   }
   return out;
 }
@@ -52,8 +95,13 @@ export default function ChartPanel({
   const buyLineRef = useRef<IPriceLine | null>(null);
   // Candle count last fitted to view — so auto-refresh updates don't reset zoom.
   const fittedLenRef = useRef(0);
-  // Active line series keyed by indicator series name, so we add/remove only what changed.
-  const lineRefs = useRef<Map<string, ISeriesApi<"Line">>>(new Map());
+  // Active indicator series keyed by name, so we add/remove only what changed.
+  const lineRefs = useRef<Map<string, ISeriesApi<"Line" | "Histogram">>>(new Map());
+  // Which indicator set is currently built (signature) — rebuild panes only when
+  // the set of indicators changes, not on every data-refresh tick.
+  const sigRef = useRef("");
+  // Pattern markers primitive (v5 moved markers off the series itself).
+  const markersRef = useRef<ReturnType<typeof createSeriesMarkers<Time>> | null>(null);
 
   // Pan/zoom the visible window by fractions of its current span. zoom>0 zooms in
   // (shrinks both edges), pan shifts both edges left(<0)/right(>0).
@@ -100,7 +148,7 @@ export default function ChartPanel({
     });
     chartRef.current = chart;
     // Green = price closed higher than it opened; red = closed lower.
-    candleRef.current = chart.addCandlestickSeries({
+    candleRef.current = chart.addSeries(CandlestickSeries, {
       upColor: "#16a34a",
       downColor: "#dc2626",
       borderUpColor: "#16a34a",
@@ -108,13 +156,15 @@ export default function ChartPanel({
       wickUpColor: "#16a34a",
       wickDownColor: "#dc2626",
     });
-    // Push the price pane up so oscillators have room at the bottom.
-    chart.priceScale("right").applyOptions({ scaleMargins: { top: 0.05, bottom: 0.3 } });
+    candleRef.current.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.08 } });
+    markersRef.current = createSeriesMarkers(candleRef.current, []);
     return () => {
       chart.remove();
       chartRef.current = null;
       candleRef.current = null;
+      markersRef.current = null;
       lineRefs.current.clear();
+      sigRef.current = "";
     };
   }, []);
 
@@ -184,47 +234,66 @@ export default function ChartPanel({
     }
   }, [buyPrice]);
 
-  // Reconcile line series with the requested `lines`: create new, update existing,
-  // drop removed. This is what lets indicators add/remove without a full reload.
+  // Reconcile indicator series with `lines`. Each oscillator group (MACD, RSI,
+  // ATR) lives in its OWN pane below the price pane — real stacked sub-charts
+  // like TradingView (v5 panes), not overlapping strips. Panes are only rebuilt
+  // when the indicator SET changes; a plain data-refresh just re-feeds the data.
   useEffect(() => {
     const chart = chartRef.current;
     if (!chart) return;
     const refs = lineRefs.current;
-    const wanted = new Set(lines.map((l) => l.name));
 
-    for (const [name, series] of refs) {
-      if (!wanted.has(name)) {
-        chart.removeSeries(series);
-        refs.delete(name);
-      }
-    }
+    // Signature of the active indicator set (names + overlay), ignoring values.
+    const sig = lines.map((l) => `${l.name}:${l.overlay ? 1 : 0}`).sort().join("|");
+    if (sig !== sigRef.current) {
+      for (const [, series] of refs) chart.removeSeries(series);
+      refs.clear();
 
-    for (const line of lines) {
-      let series = refs.get(line.name);
-      if (!series) {
-        series = chart.addLineSeries({
-          color: colorFor(line.name),
-          lineWidth: 2,
-          priceScaleId: line.overlay ? "right" : OSC_SCALE,
-          priceLineVisible: false,
-          lastValueVisible: false,
-        });
+      // Oscillator groups present, in a fixed order → pane index (price = 0).
+      const present = ["macd", "rsi", "atr", OSC_SCALE].filter((g) =>
+        lines.some((l) => !l.overlay && oscPane(l.name) === g),
+      );
+      const paneOf = (line: SeriesLine) => (line.overlay ? 0 : 1 + present.indexOf(oscPane(line.name)));
+
+      for (const line of lines) {
+        const pane = paneOf(line);
+        let series: ISeriesApi<"Line" | "Histogram">;
+        if (isHistogram(line.name)) {
+          series = chart.addSeries(HistogramSeries, { base: 0, priceLineVisible: false, lastValueVisible: false }, pane);
+        } else {
+          series = chart.addSeries(LineSeries, { color: lineColor(line.name), lineWidth: 2, priceLineVisible: false, lastValueVisible: false }, pane);
+          // RSI overbought/oversold guides, like TradingView's 70/30 dashes.
+          if (/^RSI_/.test(line.name)) {
+            series.createPriceLine({ price: 70, color: "#ef5350", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "70" });
+            series.createPriceLine({ price: 30, color: "#26a69a", lineWidth: 1, lineStyle: 2, axisLabelVisible: true, title: "30" });
+          }
+        }
         refs.set(line.name, series);
       }
-      series.setData(toLineData(line));
+
+      // Give the price pane ~60% of the height; oscillator panes split the rest.
+      const nOsc = present.length;
+      if (nOsc > 0) {
+        const panes = chart.panes();
+        panes[0]?.setStretchFactor(nOsc * 1.6);
+        for (let i = 1; i <= nOsc; i++) panes[i]?.setStretchFactor(1);
+      }
+      sigRef.current = sig;
     }
 
-    // Confine oscillator lines to the bottom strip below the price pane.
-    if (lines.some((l) => !l.overlay)) {
-      chart.priceScale(OSC_SCALE).applyOptions({ scaleMargins: { top: 0.75, bottom: 0 } });
+    // Always refresh the data (this is the per-tick path).
+    for (const line of lines) {
+      const series = refs.get(line.name);
+      if (!series) continue;
+      if (isHistogram(line.name)) (series as ISeriesApi<"Histogram">).setData(toHistData(line));
+      else (series as ISeriesApi<"Line">).setData(toLineData(line));
     }
   }, [lines]);
 
   // Drop detected-pattern markers (▲ bullish below bar, ▼ bearish above bar) on
   // the relevant bars, grouping patterns that share a bar into one marker.
   useEffect(() => {
-    const series = candleRef.current;
-    if (!series) return;
+    if (!markersRef.current) return;
     const byTime = new Map<number, Pattern[]>();
     for (const p of patterns) {
       if (p.at == null) continue;
@@ -246,7 +315,7 @@ export default function ChartPanel({
           text: ps.map((p) => p.label).join(", "),
         };
       });
-    series.setMarkers(markers);
+    markersRef.current.setMarkers(markers);
   }, [patterns, candles]);
 
   // Fill the chart column (parent is flex). autoSize keeps the canvas in sync.

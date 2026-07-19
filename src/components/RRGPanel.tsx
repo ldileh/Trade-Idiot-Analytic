@@ -7,7 +7,14 @@ import { getRRG } from "../api/client";
 import { isIDX } from "../format";
 import { SECTORS } from "../sectors";
 import type { Interval, RRGResponse, RRGQuadrant } from "../types";
-import RRGChart from "./RRGChart";
+import RRGChart, { QuadrantGrid, StrengthBars } from "./RRGChart";
+
+type View = "peta" | "kuadran" | "peringkat";
+const VIEWS: { key: View; label: string }[] = [
+  { key: "peta", label: "Peta rotasi" },
+  { key: "kuadran", label: "Kuadran" },
+  { key: "peringkat", label: "Peringkat" },
+];
 
 // Peta Arah Sektor — label pemula pengganti Leading/Weakening/Lagging/Improving
 // (PLAN.md §3): posisi tiap saham dibanding benchmark sektornya.
@@ -33,6 +40,7 @@ export default function RRGPanel({
 
   const [sectorKey, setSectorKey] = useState(sectors[0].key);
   const [timeframe, setTimeframe] = useState<Interval>("1wk");
+  const [view, setView] = useState<View>("peta");
   const [data, setData] = useState<RRGResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,7 +88,16 @@ export default function RRGPanel({
 
       {data && data.symbols.length > 0 && (
         <>
-          <RRGChart data={data} />
+          <div className="rrg-views" role="tablist" aria-label="Model peta sektor">
+            {VIEWS.map((v) => (
+              <button key={v.key} type="button" role="tab" aria-selected={view === v.key} className={view === v.key ? "active" : ""} onClick={() => setView(v.key)}>
+                {v.label}
+              </button>
+            ))}
+          </div>
+          {view === "peta" && <RRGChart data={data} />}
+          {view === "kuadran" && <QuadrantGrid data={data} onPick={onPick} />}
+          {view === "peringkat" && <StrengthBars data={data} onPick={onPick} />}
           <div className="rrg-legend">
             {(Object.keys(QUADRANT_LABEL) as RRGQuadrant[]).map((q) => {
               const syms = data.symbols.filter((s) => s.quadrant === q);

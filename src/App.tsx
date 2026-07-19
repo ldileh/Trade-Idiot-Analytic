@@ -23,6 +23,28 @@ import type { Candle, FundamentalsResponse, IndicatorSpec, Interval, MomentumRes
 
 const DEFAULT_QUERY: TickerQuery = { ticker: "AAPL", interval: "1d", range: "1y" };
 
+// Grafik yang terbuka (tab) disimpan di localStorage, jadi saat app dibuka lagi
+// tab terakhir tetap muncul — sama seperti favorit & portofolio.
+const TABS_KEY = "chartTabs";
+function loadTabs(): { tabs: TickerQuery[]; active: number } {
+  try {
+    const v = JSON.parse(localStorage.getItem(TABS_KEY) || "null");
+    const tabs: TickerQuery[] = Array.isArray(v?.tabs)
+      ? v.tabs.filter(
+          (t: unknown): t is TickerQuery =>
+            typeof (t as TickerQuery)?.ticker === "string" &&
+            typeof (t as TickerQuery)?.interval === "string" &&
+            typeof (t as TickerQuery)?.range === "string",
+        )
+      : [];
+    if (tabs.length === 0) return { tabs: [DEFAULT_QUERY], active: 0 };
+    const active = Number.isInteger(v?.active) ? Math.min(Math.max(0, v.active), tabs.length - 1) : 0;
+    return { tabs, active };
+  } catch {
+    return { tabs: [DEFAULT_QUERY], active: 0 };
+  }
+}
+
 // Auto-refresh cadence keyed to the candle timeframe: short candles refresh
 // often, long ones rarely. Floored at 60s, capped at 5 min so the live price
 // still moves intraday even on daily+ charts. (Backend caches ~60s.)
@@ -40,9 +62,17 @@ const REFRESH_MS: Record<Interval, number> = {
 export default function App() {
   // Beberapa grafik dalam tab: tiap tab satu query (saham/interval/range). Tab
   // aktif menyetir semua panel & grafik; ganti tab = ganti query aktif.
-  const [tabs, setTabs] = useState<TickerQuery[]>([DEFAULT_QUERY]);
-  const [active, setActive] = useState(0);
+  const [tabs, setTabs] = useState<TickerQuery[]>(() => loadTabs().tabs);
+  const [active, setActive] = useState(() => loadTabs().active);
   const query = tabs[active] ?? DEFAULT_QUERY;
+  // Simpan tab + tab aktif tiap kali berubah, supaya pulih saat app dibuka lagi.
+  useEffect(() => {
+    try {
+      localStorage.setItem(TABS_KEY, JSON.stringify({ tabs, active }));
+    } catch {
+      /* localStorage penuh/diblokir — abaikan, tab hanya tak tersimpan */
+    }
+  }, [tabs, active]);
   // Mutasi query selalu mengenai tab yang aktif (mendukung nilai atau updater).
   const setQuery = useCallback(
     (next: TickerQuery | ((prev: TickerQuery) => TickerQuery)) => {

@@ -10,6 +10,7 @@ import type {
   Interval,
   MarketMapResponse,
   MomentumResponse,
+  NewsResponse,
   PatternsResponse,
   OwnershipResponse,
   PricesResponse,
@@ -98,6 +99,11 @@ export function getRRG(
     tail: String(tail),
   });
   return request<RRGResponse>(`/rrg?${q}`);
+}
+
+export function getNews(ticker: string, limit = 6): Promise<NewsResponse> {
+  const q = new URLSearchParams({ ticker, limit: String(limit) });
+  return request<NewsResponse>(`/news?${q}`);
 }
 
 export function getCorrelation(ticker: string, peers: string[], top = 5): Promise<CorrelationResponse> {

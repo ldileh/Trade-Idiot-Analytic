@@ -230,6 +230,22 @@ class MomentumResponse(BaseModel):
     headline: str
 
 
+class NewsItem(BaseModel):
+    """One recent headline for a ticker with a crude per-headline sentiment."""
+
+    title: str
+    publisher: str
+    url: str
+    time: int  # Unix epoch seconds, 0 if unknown
+    sentiment: int  # -1 negatif, 0 netral, +1 positif (lexicon count)
+
+
+class NewsResponse(BaseModel):
+    ticker: str
+    items: list[NewsItem]
+    sentiment: int  # sum of item sentiments; >0 = arus berita cenderung positif
+
+
 class EquityPoint(BaseModel):
     time: int
     equity: float

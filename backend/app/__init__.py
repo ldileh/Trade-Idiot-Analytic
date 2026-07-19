@@ -11,6 +11,7 @@ from app.routers import (
     indicators,
     marketmap,
     momentum,
+    news,
     ownership,
     patterns,
     prices,
@@ -49,5 +50,6 @@ def create_app() -> FastAPI:
     app.include_router(momentum.router)
     app.include_router(marketmap.router)
     app.include_router(correlation.router)
+    app.include_router(news.router)
 
     return app

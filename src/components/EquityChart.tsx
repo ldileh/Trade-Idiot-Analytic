@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import {
   createChart,
+  LineSeries,
   type IChartApi,
   type ISeriesApi,
   type LineData,
@@ -25,7 +26,7 @@ export default function EquityChart({ points }: { points: EquityPoint[] }) {
       rightPriceScale: { borderColor: "#e3e8f3" },
     });
     chartRef.current = chart;
-    seriesRef.current = chart.addLineSeries({ color: "#4f46e5", lineWidth: 2 });
+    seriesRef.current = chart.addSeries(LineSeries, { color: "#4f46e5", lineWidth: 2 });
     return () => {
       chart.remove();
       chartRef.current = null;
