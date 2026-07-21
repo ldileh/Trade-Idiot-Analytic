@@ -78,6 +78,17 @@ pub fn run() {
                             .creation_flags(CREATE_NO_WINDOW)
                             .status();
                     }
+                    // macOS/Linux: same tree problem. pkill -P kills the children the
+                    // one-file bootstrap spawned; then we kill the bootstrap itself.
+                    // ponytail: -P is one level deep, which matches PyInstaller's
+                    // bootstrap→server shape; go to a process-group kill only if a
+                    // deeper grandchild ever survives.
+                    #[cfg(unix)]
+                    {
+                        let _ = std::process::Command::new("pkill")
+                            .args(["-TERM", "-P", &child.pid().to_string()])
+                            .status();
+                    }
                     let _ = child.kill();
                 }
             }

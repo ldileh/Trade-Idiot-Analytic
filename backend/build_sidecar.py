@@ -33,13 +33,15 @@ def main() -> None:
          "--distpath", "dist", "--workpath", "build"],
         cwd=BACKEND, check=True,
     )
-    exe = BACKEND / "dist" / "backend.exe"
+    # PyInstaller adds .exe only on Windows; on macOS/Linux the binary has no suffix.
+    suffix = ".exe" if sys.platform == "win32" else ""
+    exe = BACKEND / "dist" / f"backend{suffix}"
     if not exe.exists():
-        raise SystemExit("PyInstaller did not produce dist/backend.exe")
+        raise SystemExit(f"PyInstaller did not produce dist/backend{suffix}")
 
     bin_dir = ROOT / "src-tauri" / "bin"
     bin_dir.mkdir(parents=True, exist_ok=True)
-    dest = bin_dir / f"backend-{target_triple()}.exe"
+    dest = bin_dir / f"backend-{target_triple()}{suffix}"
     shutil.copy2(exe, dest)
     print(f"sidecar ready: {dest}")
 

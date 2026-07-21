@@ -1,22 +1,31 @@
-# Build the desktop app (Tauri shell + PyInstaller backend sidecar) on Windows.
+# Build the desktop app (Tauri shell + PyInstaller backend sidecar).
 #
-# The app is Windows-only: the backend is bundled as a sidecar exe named
-# backend-<rust-target-triple>.exe, which Tauri's externalBin ["bin/backend"]
-# resolves to. So the order matters: build the sidecar first, then `tauri build`.
+# Two platforms are built from one release:
+#  - Windows (windows-latest): sidecar backend-x86_64-pc-windows-msvc.exe,
+#    NSIS installer (auto-update) + a hand-zipped portable ZIP (copy-and-run).
+#  - macOS Apple Silicon (macos-14, arm64): sidecar backend-aarch64-apple-darwin,
+#    .dmg + .app. The .app IS the portable form (drag to Applications); the
+#    updater consumes the .app.tar.gz + .sig that createUpdaterArtifacts emits.
+#    Unsigned — first launch needs right-click → Open (or xattr -dr quarantine).
+#
+# The backend is bundled as a sidecar named backend-<rust-target-triple>[.exe],
+# which Tauri's externalBin ["bin/backend"] resolves to. PyInstaller can't cross-
+# compile, so each OS builds its own sidecar on its own runner.
 #
 # Triggers:
-#  - push to main (i.e. a PR from dev merged into main): auto-bumps the PATCH
-#    version, writes it back to main, tags vX.Y.Z, and publishes a signed release
-#    with installer + .sig + latest.json (what the in-app updater reads from
-#    releases/latest/download/latest.json). The bump commit carries [skip ci] so
-#    it doesn't re-trigger this workflow (no infinite loop).
+#  - push to main (a PR from dev merged into main): the `version` job auto-bumps
+#    the PATCH version, writes it back to main, tags vX.Y.Z; the `build` matrix
+#    then publishes a signed release with both platforms' artifacts + latest.json
+#    (what the in-app updater reads from releases/latest/download/latest.json).
+#    The bump commit carries [skip ci] so it doesn't re-trigger (no infinite loop).
 #  - workflow_dispatch: manual run. Pass `tag` to publish that exact release, or
-#    leave it blank to only build the installer artifact (no release, no bump).
+#    leave it blank to only build artifacts (no release, no bump).
 #
 # Auto-update requires ONE repo secret (Settings → Secrets → Actions):
 #   TAURI_SIGNING_PRIVATE_KEY — contents of src-tauri/tauri-updater.key
 # (the key has no password, so no password secret). The matching PUBLIC key
-# lives in tauri.conf.json (plugins.updater.pubkey).
+# lives in tauri.conf.json (plugins.updater.pubkey). The same key signs both
+# the Windows and macOS updater artifacts.
 name: build
 
 on:
@@ -25,7 +34,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v1.0.1). Blank = build installer artifact only, no release."
+        description: "Release tag (e.g. v1.0.1). Blank = build artifacts only, no release."
         required: false
         default: ""
 
@@ -38,22 +47,22 @@ permissions:
   contents: write # required to push the version bump + create the Release
 
 jobs:
-  build:
-    runs-on: windows-latest
-    # Skip the run that our own bump commit creates (belt-and-suspenders with
-    # [skip ci], which GitHub also honors on push events).
+  # -----------------------------------------------------------------------------
+  # Runs ONCE (not per-OS): on push to main, bump the PATCH version across all four
+  # files, commit it back with [skip ci], tag vX.Y.Z. Emits the tag both platforms
+  # release into. Manual runs skip the bump and just pass the `tag` input through.
+  # -----------------------------------------------------------------------------
+  version:
+    runs-on: ubuntu-latest
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
-
+    outputs:
+      tag: ${{ steps.out.outputs.tag }}
     steps:
       - uses: actions/checkout@v4
         with:
-          # Full history + a token that can push the bump commit back to main.
           fetch-depth: 0
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      # On a push to main, bump the PATCH version across all four files, commit
-      # it back to main with [skip ci], and tag vX.Y.Z. The tag drives the
-      # release step below. Manual runs skip this and use the `tag` input as-is.
       - name: Bump version & tag (push to main)
         if: github.event_name == 'push'
         id: bump
@@ -88,11 +97,33 @@ jobs:
 
       # The tag to release: bumped tag on push, or the manual `tag` input.
       - name: Resolve release tag
-        id: rel
+        id: out
         shell: pwsh
         run: |
           $tag = if ("${{ steps.bump.outputs.tag }}") { "${{ steps.bump.outputs.tag }}" } else { "${{ inputs.tag }}" }
           "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+  # -----------------------------------------------------------------------------
+  # Build + release per OS. Both jobs target the SAME tag; tauri-action merges each
+  # platform into the shared latest.json, so the updater sees Windows and macOS.
+  # -----------------------------------------------------------------------------
+  build:
+    needs: version
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            triple: x86_64-pc-windows-msvc
+          - os: macos-14 # Apple Silicon runner (arm64)
+            triple: aarch64-apple-darwin
+    runs-on: ${{ matrix.os }}
+    steps:
+      # Check out the tag we just pushed (so the bumped version is what we build).
+      # Falls back to the triggering ref for tagless manual runs.
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.version.outputs.tag || github.ref }}
 
       # --- toolchains ------------------------------------------------------
       - name: Setup pnpm
@@ -115,6 +146,8 @@ jobs:
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.triple }}
 
       - name: Cache Rust build
         uses: Swatinem/rust-cache@v2
@@ -129,17 +162,16 @@ jobs:
         run: pip install -r backend/requirements.txt
 
       # --- build -----------------------------------------------------------
-      # PyInstaller -> backend/dist/backend.exe, copied to
-      # src-tauri/bin/backend-x86_64-pc-windows-msvc.exe (needs rustc on PATH
-      # for the target triple, provided by the Rust step above).
+      # PyInstaller -> backend/dist/backend[.exe], copied to
+      # src-tauri/bin/backend-<triple>[.exe] (needs rustc on PATH for the triple).
       - name: Build backend sidecar
         run: python backend/build_sidecar.py
 
-      # tauri-action runs beforeBuildCommand (pnpm build = tsc + vite), builds
-      # the NSIS installer, and — because bundle.createUpdaterArtifacts is on and
-      # the signing secrets are present — emits the installer's .sig and, when a
-      # tag is given, a latest.json the updater reads. With a tag it also creates
-      # the GitHub Release and uploads installer + .sig + latest.json.
+      # tauri-action runs beforeBuildCommand (pnpm build), builds the OS bundles
+      # (Windows: nsis; macOS: app + dmg), and — because createUpdaterArtifacts is
+      # on and the signing secret is present — emits updater artifacts (.sig, and
+      # on mac .app.tar.gz) + latest.json. With a tag it creates/updates the shared
+      # GitHub Release, merging this platform into the existing latest.json.
       - name: Build & release Tauri app
         uses: tauri-apps/tauri-action@v0
         env:
@@ -147,19 +179,52 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           # Key ini dibuat tanpa password → env var dikosongkan (default "").
         with:
-          # Empty tag → build only (artifacts), no release. Set → publish it.
-          tagName: ${{ steps.rel.outputs.tag }}
-          releaseName: ${{ steps.rel.outputs.tag }}
+          tagName: ${{ needs.version.outputs.tag }}
+          releaseName: ${{ needs.version.outputs.tag }}
           releaseDraft: false
           generateReleaseNotes: true
           includeUpdaterJson: true
+          args: --target ${{ matrix.triple }}
 
-      # When only building (no tag), keep the installer as a downloadable artifact.
-      - name: Upload installer artifact
-        if: steps.rel.outputs.tag == ''
+      # Windows-only portable: Tauri v2 has no built-in portable target on Windows,
+      # so we zip the app exe + the backend sidecar ourselves. Other resources are
+      # embedded into the exe by Tauri; only externalBin (the sidecar) sits beside
+      # it. This ZIP is copy-and-run — it does NOT auto-update (that needs NSIS).
+      # (macOS's portable form is the .app that tauri-action already produced.)
+      - name: Package portable ZIP (Windows)
+        if: matrix.os == 'windows-latest'
+        id: portable
+        shell: pwsh
+        run: |
+          $rel = "src-tauri/target/${{ matrix.triple }}/release"
+          $stage = "portable/Trade-Idiot-Analytic"
+          New-Item -ItemType Directory -Force -Path $stage | Out-Null
+          Copy-Item "$rel/Trade-Idiot-Analytic.exe" $stage
+          # .sidecar("backend") resolves to backend-<triple>.exe next to the app exe
+          # at runtime, so ship it under that exact name (do NOT rename to backend.exe).
+          Copy-Item "$rel/backend-${{ matrix.triple }}.exe" $stage
+          $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
+          $zip = "Trade-Idiot-Analytic_${ver}_x64-portable.zip"
+          Compress-Archive -Path "$stage/*" -DestinationPath $zip -Force
+          "zip=$zip" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Attach portable ZIP to release (Windows)
+        if: matrix.os == 'windows-latest' && needs.version.outputs.tag != ''
+        shell: pwsh
+        run: gh release upload "${{ needs.version.outputs.tag }}" "${{ steps.portable.outputs.zip }}" --clobber
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      # Tagless build: keep this OS's artifacts downloadable. Globbing both triple
+      # paths is harmless — only the current OS's path exists.
+      - name: Upload build artifacts
+        if: needs.version.outputs.tag == ''
         uses: actions/upload-artifact@v4
         with:
-          name: trade-idiot-analytic-windows
+          name: trade-idiot-analytic-${{ matrix.os }}
           retention-days: 14
-          if-no-files-found: error
-          path: src-tauri/target/release/bundle/nsis/*.exe
+          if-no-files-found: warn
+          path: |
+            src-tauri/target/${{ matrix.triple }}/release/bundle/nsis/*.exe
+            src-tauri/target/${{ matrix.triple }}/release/bundle/dmg/*.dmg
+            ${{ steps.portable.outputs.zip }}
