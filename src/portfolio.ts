@@ -36,6 +36,12 @@ export function addHolding(list: Holding[], sym: string, qty: number, price: num
   return list.map((h) => (h.sym === key ? { sym: key, qty: totalQty, price: avg } : h));
 }
 
+// Ubah posisi yang sudah ada: set qty & harga ke nilai pasti (bukan rata-rata).
+// Untuk koreksi, beda dengan addHolding yang merata-ratakan pembelian baru.
+export function editHolding(list: Holding[], sym: string, qty: number, price: number): Holding[] {
+  return list.map((h) => (h.sym === sym ? { sym, qty, price } : h));
+}
+
 export function removeHolding(list: Holding[], sym: string): Holding[] {
   return list.filter((h) => h.sym !== sym);
 }

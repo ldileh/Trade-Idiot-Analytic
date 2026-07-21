@@ -15,7 +15,7 @@ import RRGPanel from "./components/RRGPanel";
 import OwnershipPanel from "./components/OwnershipPanel";
 import PortfolioPanel, { PositionSummary } from "./components/PortfolioPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
-import { addHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
+import { addHolding, editHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
 import { Card, Menu, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
 import { seriesIsOverlay, specKey } from "./indicators";
@@ -530,6 +530,7 @@ export default function App() {
           open={showPortfolio}
           holdings={holdings}
           onAdd={(sym, qty, price) => updateHoldings(addHolding(holdings, sym, qty, price))}
+          onEdit={(sym, qty, price) => updateHoldings(editHolding(holdings, sym, qty, price))}
           onRemove={(sym) => updateHoldings(removeHolding(holdings, sym))}
           onPick={(sym) => {
             setQuery((q) => ({ ...q, ticker: sym }));

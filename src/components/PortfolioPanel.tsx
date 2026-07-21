@@ -22,18 +22,23 @@ export default function PortfolioPanel({
   open,
   holdings,
   onAdd,
+  onEdit,
   onRemove,
   onPick,
 }: {
   open: boolean;
   holdings: Holding[];
   onAdd: (sym: string, qty: number, price: number) => void;
+  onEdit: (sym: string, qty: number, price: number) => void;
   onRemove: (sym: string) => void;
   onPick: (sym: string) => void;
 }) {
   const [sym, setSym] = useState("");
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
+  const [editing, setEditing] = useState<string | null>(null);
+  const [editQty, setEditQty] = useState("");
+  const [editPrice, setEditPrice] = useState("");
   // Satuan jumlah untuk saham IDX: "lot" (×100 lembar, seperti Stockbit) atau
   // "lembar". US selalu lembar (bisa pecahan). Default lot untuk .JK.
   const [unit, setUnit] = useState<"lot" | "lembar">("lot");
@@ -91,6 +96,20 @@ export default function PortfolioPanel({
     t.cost += h.qty * h.price;
     t.value += h.qty * last;
     totals.set(cur, t);
+  }
+
+  function startEdit(h: Holding) {
+    setEditing(h.sym);
+    setEditQty(String(h.qty));
+    setEditPrice(String(h.price));
+  }
+
+  function saveEdit() {
+    const q = Number(editQty);
+    const p = Number(editPrice);
+    if (!editing || !Number.isFinite(q) || q <= 0 || !Number.isFinite(p) || p <= 0) return;
+    onEdit(editing, q, p);
+    setEditing(null);
   }
 
   function submit(e: React.FormEvent) {
@@ -159,6 +178,27 @@ export default function PortfolioPanel({
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {holdings.map((h) => {
+            if (editing === h.sym) {
+              return (
+                <div key={h.sym} className="mini" style={{ display: "flex", alignItems: "flex-end", gap: 8, flexWrap: "wrap" }}>
+                  <div className="v" style={{ marginTop: 0, flexBasis: "100%" }}>{h.sym}</div>
+                  <label className="field" style={{ flex: "1 1 100px" }}>
+                    <span>Jumlah lembar</span>
+                    <input type="number" min="1" step="any" value={editQty} onChange={(e) => setEditQty(e.target.value)} aria-label={`Jumlah lembar ${h.sym}`} />
+                  </label>
+                  <label className="field" style={{ flex: "1 1 120px" }}>
+                    <span>Harga beli / lembar</span>
+                    <input type="number" min="0" step="any" value={editPrice} onChange={(e) => setEditPrice(e.target.value)} aria-label={`Harga beli ${h.sym}`} />
+                  </label>
+                  <button type="button" className="btn-primary" style={{ flex: "0 0 auto", height: 42 }} onClick={saveEdit}>
+                    Simpan
+                  </button>
+                  <button type="button" className="btn-ghost" style={{ flex: "0 0 auto", height: 42 }} onClick={() => setEditing(null)}>
+                    Batal
+                  </button>
+                </div>
+              );
+            }
             const last = prices[h.sym];
             const cost = h.qty * h.price;
             const value = last != null ? h.qty * last : null;
@@ -218,6 +258,18 @@ export default function PortfolioPanel({
                     </div>
                   )}
                 </div>
+                <button
+                  type="button"
+                  className="modal-x"
+                  aria-label={`Ubah ${h.sym}`}
+                  title="Ubah posisi"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEdit(h);
+                  }}
+                >
+                  ✎
+                </button>
                 <button
                   type="button"
                   className="modal-x"
