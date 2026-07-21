@@ -1,6 +1,6 @@
 [package]
 name = "trade-idiot-analytic"
-version = "1.0.1"
+version = "1.0.2"
 description = "Trade-Idiot-Analytic desktop shell"
 edition = "2021"
 rust-version = "1.77"
