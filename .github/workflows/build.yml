@@ -201,8 +201,10 @@ jobs:
           New-Item -ItemType Directory -Force -Path $stage | Out-Null
           Copy-Item "$rel/Trade-Idiot-Analytic.exe" $stage
           # .sidecar("backend") resolves to backend-<triple>.exe next to the app exe
-          # at runtime, so ship it under that exact name (do NOT rename to backend.exe).
-          Copy-Item "$rel/backend-${{ matrix.triple }}.exe" $stage
+          # at runtime, so ship it under that exact name. Source it from src-tauri/bin
+          # where build_sidecar.py put it — Tauri does NOT copy externalBin into the
+          # target/<triple>/release dir, only embeds it into the installer bundle.
+          Copy-Item "src-tauri/bin/backend-${{ matrix.triple }}.exe" $stage
           $ver = (Get-Content src-tauri/tauri.conf.json | ConvertFrom-Json).version
           $zip = "Trade-Idiot-Analytic_${ver}_x64-portable.zip"
           Compress-Archive -Path "$stage/*" -DestinationPath $zip -Force
