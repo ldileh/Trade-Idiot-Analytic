@@ -4,42 +4,95 @@
 # backend-<rust-target-triple>.exe, which Tauri's externalBin ["bin/backend"]
 # resolves to. So the order matters: build the sidecar first, then `tauri build`.
 #
-# Triggers: manual only (workflow_dispatch). Run it from the Actions tab.
-# Pass a `tag` input (e.g. v0.1.1) to build a signed NSIS installer AND publish
-# a GitHub Release with the installer + its .sig + latest.json — which is what
-# the in-app auto-updater reads from
-# releases/latest/download/latest.json. Leave `tag` blank to only build the
-# installer as an artifact (no release, no signing needed).
+# Triggers:
+#  - push to main (i.e. a PR from dev merged into main): auto-bumps the PATCH
+#    version, writes it back to main, tags vX.Y.Z, and publishes a signed release
+#    with installer + .sig + latest.json (what the in-app updater reads from
+#    releases/latest/download/latest.json). The bump commit carries [skip ci] so
+#    it doesn't re-trigger this workflow (no infinite loop).
+#  - workflow_dispatch: manual run. Pass `tag` to publish that exact release, or
+#    leave it blank to only build the installer artifact (no release, no bump).
 #
-# Auto-update requires two repo secrets (Settings → Secrets → Actions):
-#   TAURI_SIGNING_PRIVATE_KEY          — contents of src-tauri/tauri-updater.key
-#   TAURI_SIGNING_PRIVATE_KEY_PASSWORD — the key's password ("" if none)
-# The matching PUBLIC key lives in tauri.conf.json (plugins.updater.pubkey);
-# bump the `version` in tauri.conf.json before tagging or the client sees no update.
+# Auto-update requires ONE repo secret (Settings → Secrets → Actions):
+#   TAURI_SIGNING_PRIVATE_KEY — contents of src-tauri/tauri-updater.key
+# (the key has no password, so no password secret). The matching PUBLIC key
+# lives in tauri.conf.json (plugins.updater.pubkey).
 name: build
 
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       tag:
-        description: "Release tag (e.g. v0.1.1). Blank = build installer artifact only, no release."
+        description: "Release tag (e.g. v1.0.1). Blank = build installer artifact only, no release."
         required: false
         default: ""
 
-# Cancel an in-progress run when a newer run starts on the same ref.
+# Serialize main-branch runs so two merges can't race on the version bump.
 concurrency:
   group: build-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
-  contents: write # required to create a Release when a tag input is given
+  contents: write # required to push the version bump + create the Release
 
 jobs:
   build:
     runs-on: windows-latest
+    # Skip the run that our own bump commit creates (belt-and-suspenders with
+    # [skip ci], which GitHub also honors on push events).
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Full history + a token that can push the bump commit back to main.
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # On a push to main, bump the PATCH version across all four files, commit
+      # it back to main with [skip ci], and tag vX.Y.Z. The tag drives the
+      # release step below. Manual runs skip this and use the `tag` input as-is.
+      - name: Bump version & tag (push to main)
+        if: github.event_name == 'push'
+        id: bump
+        shell: pwsh
+        run: |
+          $conf = "src-tauri/tauri.conf.json"
+          $cur = (Get-Content $conf | ConvertFrom-Json).version
+          $p = $cur.Split(".")
+          $new = "$($p[0]).$($p[1]).$([int]$p[2] + 1)"
+          Write-Host "Bumping $cur -> $new"
+          $e = [regex]::Escape($cur)
+          # NOTE: -replace operands MUST be pre-built variables, not inline `A + B`
+          # expressions — PowerShell binds -replace tighter than +, so an inline
+          # concatenation silently replaces with only the first literal.
+          # tauri.conf.json + package.json: the "version" field.
+          $jp = '"version": "' + $e + '"'; $jr = '"version": "' + $new + '"'
+          (Get-Content $conf -Raw) -replace $jp, $jr | Set-Content $conf -NoNewline
+          (Get-Content package.json -Raw) -replace $jp, $jr | Set-Content package.json -NoNewline
+          # Cargo.toml [package] version + Cargo.lock package entry.
+          $tp = 'version = "' + $e + '"'; $tr = 'version = "' + $new + '"'
+          (Get-Content src-tauri/Cargo.toml -Raw) -replace $tp, $tr | Set-Content src-tauri/Cargo.toml -NoNewline
+          $lp = '(name = "trade-idiot-analytic"\r?\nversion = ")' + $e + '"'; $lr = '${1}' + $new + '"'
+          (Get-Content src-tauri/Cargo.lock -Raw) -replace $lp, $lr | Set-Content src-tauri/Cargo.lock -NoNewline
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add src-tauri/tauri.conf.json package.json src-tauri/Cargo.toml src-tauri/Cargo.lock
+          git commit -m "chore: release v$new [skip ci]"
+          git tag "v$new"
+          git push origin HEAD:main
+          git push origin "v$new"
+          "tag=v$new" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      # The tag to release: bumped tag on push, or the manual `tag` input.
+      - name: Resolve release tag
+        id: rel
+        shell: pwsh
+        run: |
+          $tag = if ("${{ steps.bump.outputs.tag }}") { "${{ steps.bump.outputs.tag }}" } else { "${{ inputs.tag }}" }
+          "tag=$tag" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
 
       # --- toolchains ------------------------------------------------------
       - name: Setup pnpm
@@ -94,16 +147,16 @@ jobs:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
           # Key ini dibuat tanpa password → env var dikosongkan (default "").
         with:
-          # Empty tagName → build only (artifacts), no release. Set → publish it.
-          tagName: ${{ inputs.tag }}
-          releaseName: ${{ inputs.tag }}
+          # Empty tag → build only (artifacts), no release. Set → publish it.
+          tagName: ${{ steps.rel.outputs.tag }}
+          releaseName: ${{ steps.rel.outputs.tag }}
           releaseDraft: false
           generateReleaseNotes: true
           includeUpdaterJson: true
 
       # When only building (no tag), keep the installer as a downloadable artifact.
       - name: Upload installer artifact
-        if: inputs.tag == ''
+        if: steps.rel.outputs.tag == ''
         uses: actions/upload-artifact@v4
         with:
           name: trade-idiot-analytic-windows
