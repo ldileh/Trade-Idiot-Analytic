@@ -72,8 +72,12 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 
 /* Right column: chart fills the row height (no fixed px), so the grid track
    never exceeds the viewport and the left column scrolls within it cleanly. */
-.main { display: flex; min-height: 0; }
-.chart-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.main { display: flex; min-height: 0; min-width: 0; }
+/* min-width:0 lets the flex item shrink below the chart canvas's own width.
+   Without it, when the maximized (position:fixed) card collapses back to flow,
+   the canvas's stale full-screen width forces the track wider and shoves the
+   sidebar ("layout kacau" on minimize). */
+.chart-card { flex: 1; display: flex; flex-direction: column; min-height: 0; min-width: 0; }
 .chart-card .chart-wrap { flex: 1; min-height: 0; }
 
 /* Grafik layar penuh: menutupi seluruh jendela di atas segalanya. */
