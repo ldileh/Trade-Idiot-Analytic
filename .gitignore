@@ -32,6 +32,9 @@ Thumbs.db
 .env.*
 !.env.example
 
+# Tauri updater signing PRIVATE key — never commit. The .pub is committed.
+src-tauri/tauri-updater.key
+
 # Claude Code — local-only settings (shared skills/ are committed)
 .claude/settings.local.json
 

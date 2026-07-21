@@ -18,8 +18,6 @@ import {
 import type { Candle, IndicatorSeries, Pattern } from "../types";
 import { colorFor } from "../indicators";
 
-const OSC_SCALE = "osc"; // price-scale id prefix for oscillator panes
-
 // A named indicator line plus whether it belongs on the price pane (overlay)
 // or the bottom oscillator pane.
 export interface SeriesLine extends IndicatorSeries {
@@ -45,13 +43,12 @@ function isHistogram(name: string): boolean {
   return /_hist$/i.test(name);
 }
 
-// Which stacked oscillator pane a series lives in — grouped by indicator so RSI
-// (0–100) and MACD (centred on 0) get separate bands instead of overlapping.
+// Which stacked oscillator pane a series lives in. Each indicator *instance*
+// gets its OWN pane (so RSI_14 and RSI_28 don't share one band), but the several
+// lines of a single MACD instance (MACD / MACD_signal / MACD_hist) stay together.
 function oscPane(name: string): string {
-  if (/^RSI_/.test(name)) return "rsi";
-  if (/^ATR_/.test(name)) return "atr";
-  if (/^MACD/.test(name)) return "macd";
-  return "osc";
+  if (/^MACD/.test(name)) return "MACD"; // all MACD lines → one pane
+  return name; // RSI_14, RSI_28, ATR_14 … each its own pane
 }
 
 // Drop warm-up nulls so the line doesn't draw a gap to zero. time+value align 1:1.
@@ -249,10 +246,14 @@ export default function ChartPanel({
       for (const [, series] of refs) chart.removeSeries(series);
       refs.clear();
 
-      // Oscillator groups present, in a fixed order → pane index (price = 0).
-      const present = ["macd", "rsi", "atr", OSC_SCALE].filter((g) =>
-        lines.some((l) => !l.overlay && oscPane(l.name) === g),
-      );
+      // Distinct oscillator panes present, in first-seen order → pane index
+      // (price pane = 0). Each indicator instance is its own pane.
+      const present: string[] = [];
+      for (const l of lines) {
+        if (l.overlay) continue;
+        const g = oscPane(l.name);
+        if (!present.includes(g)) present.push(g);
+      }
       const paneOf = (line: SeriesLine) => (line.overlay ? 0 : 1 + present.indexOf(oscPane(line.name)));
 
       for (const line of lines) {

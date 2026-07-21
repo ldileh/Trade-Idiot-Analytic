@@ -18,6 +18,7 @@ import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { addHolding, editHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
 import { Card, Menu, Modal } from "./components/ui";
 import { INDICATOR_INFO } from "./help";
+import { checkForUpdate } from "./update";
 import { seriesIsOverlay, specKey } from "./indicators";
 import type { Candle, FundamentalsResponse, IndicatorSpec, Interval, MomentumResponse, PatternsResponse, PricesResponse } from "./types";
 
@@ -124,7 +125,21 @@ export default function App() {
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMarketMap, setShowMarketMap] = useState(false);
+  const [maximized, setMaximized] = useState(false);
   const [holdings, setHoldings] = useState<Holding[]>(loadHoldings);
+
+  // Sekali saat app dibuka: cek pembaruan diam-diam (hanya menawarkan bila ada).
+  useEffect(() => {
+    checkForUpdate(true);
+  }, []);
+
+  // Esc keluar dari mode layar penuh grafik.
+  useEffect(() => {
+    if (!maximized) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMaximized(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [maximized]);
 
   // Mutasi portofolio selalu lewat sini agar localStorage ikut tersimpan.
   const updateHoldings = useCallback((next: Holding[]) => {
@@ -293,7 +308,7 @@ export default function App() {
 
         {/* Kolom kanan — grafik besar + alat */}
         <section className="main">
-          <Card className="chart-card">
+          <Card className={`chart-card${maximized ? " maximized" : ""}`}>
             <div className="chart-tabs" role="tablist" aria-label="Grafik terbuka">
               {tabs.map((t, i) => (
                 <div
@@ -344,6 +359,15 @@ export default function App() {
                   title={`Perbarui harga sekarang. Otomatis tiap ${Math.round(REFRESH_MS[query.interval] / 1000)} detik.${refreshedAt ? ` Terakhir: ${new Date(refreshedAt).toLocaleTimeString()}` : ""}`}
                 >
                   <span className={refreshing ? "spin" : ""} aria-hidden style={{ display: "inline-block" }}>↻</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn-ghost btn-icon"
+                  onClick={() => setMaximized((v) => !v)}
+                  aria-label={maximized ? "Perkecil grafik" : "Perbesar grafik (layar penuh)"}
+                  title={maximized ? "Keluar layar penuh (Esc)" : "Layar penuh grafik"}
+                >
+                  <span aria-hidden>{maximized ? "🗗" : "⛶"}</span>
                 </button>
                 <span className="tb-sep" />
                 {/* Grup Portofolio */}
@@ -397,9 +421,14 @@ export default function App() {
                 {/* Menu Pengaturan */}
                 <Menu label="⚙️" title="Pengaturan">
                   {(close) => (
-                    <button type="button" onClick={() => { setShowSettings(true); close(); }} title="Sumber Data (BYOK)">
-                      ⚙️ Sumber Data
-                    </button>
+                    <>
+                      <button type="button" onClick={() => { setShowSettings(true); close(); }} title="Sumber Data (BYOK)">
+                        ⚙️ Sumber Data
+                      </button>
+                      <button type="button" onClick={() => { checkForUpdate(); close(); }} title="Cek versi terbaru aplikasi">
+                        ⬆️ Cek pembaruan
+                      </button>
+                    </>
                   )}
                 </Menu>
               </div>
@@ -532,6 +561,12 @@ export default function App() {
           onAdd={(sym, qty, price) => updateHoldings(addHolding(holdings, sym, qty, price))}
           onEdit={(sym, qty, price) => updateHoldings(editHolding(holdings, sym, qty, price))}
           onRemove={(sym) => updateHoldings(removeHolding(holdings, sym))}
+          onImport={(imported) => {
+            // Gabungkan hasil impor ke portofolio saat ini (rata-rata tertimbang).
+            let next = holdings;
+            for (const h of imported) next = addHolding(next, h.sym, h.qty, h.price);
+            updateHoldings(next);
+          }}
           onPick={(sym) => {
             setQuery((q) => ({ ...q, ticker: sym }));
             setShowPortfolio(false);

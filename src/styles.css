@@ -76,6 +76,12 @@ h1, h2, h3 { margin: 0; line-height: 1.25; }
 .chart-card { flex: 1; display: flex; flex-direction: column; min-height: 0; }
 .chart-card .chart-wrap { flex: 1; min-height: 0; }
 
+/* Grafik layar penuh: menutupi seluruh jendela di atas segalanya. */
+.chart-card.maximized {
+  position: fixed; inset: 0; z-index: 100; margin: 0; border-radius: 0;
+  max-width: none; max-height: none;
+}
+
 @media (max-width: 900px) {
   .app { height: auto; overflow: visible; }   /* stacked: let the page scroll */
   .layout { grid-template-columns: 1fr; flex: none; align-items: start; }

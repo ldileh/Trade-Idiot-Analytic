@@ -1,12 +1,12 @@
 // Panel portofolio: catat saham yang dimiliki (kode, jumlah lembar, harga
 // beli). Klik sebuah posisi untuk membukanya di grafik — di sana muncul garis
 // "harga beli kamu" plus hitungan untung/rugi di ringkasan harga.
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { getMarketMap } from "../api/client";
 import { currencyFor, isIDX, money, shares } from "../format";
 import { suggest } from "../suggestions";
 import { getNews, getPatterns } from "../api/client";
-import type { Holding } from "../portfolio";
+import { parseHoldings, type Holding } from "../portfolio";
 import type { NewsResponse, PatternsResponse } from "../types";
 import { STOCKS_BY_MARKET } from "../stocks";
 import { InfoTip } from "./ui";
@@ -24,6 +24,7 @@ export default function PortfolioPanel({
   onAdd,
   onEdit,
   onRemove,
+  onImport,
   onPick,
 }: {
   open: boolean;
@@ -31,8 +32,39 @@ export default function PortfolioPanel({
   onAdd: (sym: string, qty: number, price: number) => void;
   onEdit: (sym: string, qty: number, price: number) => void;
   onRemove: (sym: string) => void;
+  onImport: (imported: Holding[]) => void;
   onPick: (sym: string) => void;
 }) {
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [importMsg, setImportMsg] = useState<string | null>(null);
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = ""; // izinkan pilih file yang sama lagi
+    if (!file) return;
+    try {
+      const parsed = parseHoldings(await file.text());
+      if (parsed.length === 0) {
+        setImportMsg("Tidak ada baris valid. Butuh kolom kode, jumlah (lot/lembar), dan harga.");
+        return;
+      }
+      onImport(parsed);
+      setImportMsg(`${parsed.length} saham diimpor. ✅`);
+    } catch {
+      setImportMsg("Gagal membaca file. Pastikan format JSON atau CSV.");
+    }
+  }
+
+  // Unduh portofolio saat ini sebagai JSON (bisa diimpor lagi).
+  function exportJson() {
+    const blob = new Blob([JSON.stringify(holdings, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "portofolio.json";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
   const [sym, setSym] = useState("");
   const [qty, setQty] = useState("");
   const [price, setPrice] = useState("");
@@ -172,6 +204,20 @@ export default function PortfolioPanel({
           + Tambah
         </button>
       </form>
+
+      <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 14, flexWrap: "wrap" }}>
+        <input ref={fileRef} type="file" accept=".json,.csv,text/csv,application/json" onChange={onFile} style={{ display: "none" }} />
+        <button type="button" className="btn-ghost btn-sm" onClick={() => fileRef.current?.click()}>
+          📥 Impor (CSV / JSON)
+        </button>
+        {holdings.length > 0 && (
+          <button type="button" className="btn-ghost btn-sm" onClick={exportJson}>
+            📤 Ekspor JSON
+          </button>
+        )}
+        <InfoTip text="Impor dari file JSON (hasil ekspor app ini) atau CSV dengan kolom kode, jumlah (lot/lembar), dan harga — mis. ekspor dari Stockbit. Kode .JK dengan kolom 'lot' otomatis dikali 100 lembar. Data digabung ke portofolio yang ada." />
+        {importMsg && <span className="muted" style={{ fontSize: 12 }}>{importMsg}</span>}
+      </div>
 
       {holdings.length === 0 ? (
         <p className="muted">Belum ada saham di portofolio. Isi formulir di atas untuk mencatat saham pertamamu. 📝</p>

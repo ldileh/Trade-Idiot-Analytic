@@ -24,8 +24,17 @@
   },
   "bundle": {
     "active": true,
-    "targets": ["app"],
+    "targets": ["nsis"],
+    "createUpdaterArtifacts": true,
     "icon": ["icons/icon.ico"],
     "externalBin": ["bin/backend"]
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": [
+        "https://github.com/ldileh/Trade-Idiot-Analytic/releases/latest/download/latest.json"
+      ],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDVGMjdCQzZBQTNCMjFGNTIKUldSU0g3S2phcnduWHdXeEY3aEd4YUxqODNrSzM5VGFBOXJ5K0lJbEg5aXY0QzhabDd6Zk9BSzMK"
+    }
   }
 }
