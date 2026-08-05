@@ -83,6 +83,10 @@ class Pattern(BaseModel):
     summary: str
     detail: str
     at: int | None = None  # Unix seconds of the relevant bar, for a chart marker
+    # EMA20/50 trend context (Arévalo et al. 2017). None = not applicable, e.g.
+    # the trend reading itself, which can't be graded against itself.
+    align: Literal["aligned", "against", "unclear"] | None = None
+    align_text: str = ""
 
 
 class PatternsResponse(BaseModel):
