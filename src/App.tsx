@@ -384,7 +384,7 @@ export default function App() {
                     {patterns && patterns.patterns.length > 0 && <span className="count">{patterns.patterns.length}</span>}
                   </button>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowFundamentals(true)} disabled={!hasData} title={fundamentals?.bias_text}>
-                    📒 Fundamental {fundamentals && <span className="count">{fundamentals.score}</span>}
+                    📒 Fundamental {fundamentals?.score != null && <span className="count">{fundamentals.score}</span>}
                   </button>
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowIndicators(true)} disabled={!hasData}>
                     📊 Alat bantu {specs.length > 0 && <span className="count">{specs.length}</span>}

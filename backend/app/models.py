@@ -177,8 +177,8 @@ class AltmanScore(BaseModel):
 class FundamentalsResponse(BaseModel):
     ticker: str
     name: str
-    score: int  # 0–100 composite health score
-    bias: Literal["good", "neutral", "bad"]
+    score: int | None  # 0–100 composite; None = too few ratios to grade
+    bias: Literal["good", "neutral", "bad", "unknown"]  # "unknown" = score withheld
     bias_text: str
     metrics: list[FundamentalMetric]
     piotroski: PiotroskiScore | None = None  # Skor Kesehatan Keuangan
