@@ -189,6 +189,23 @@ class FundamentalsResponse(BaseModel):
     altman: AltmanScore | None = None        # Skor Risiko Bangkrut
 
 
+class BandarmologyResponse(BaseModel):
+    """Proksi jejak akumulasi/distribusi — BUKAN Broker Summary IDX."""
+
+    ticker: str
+    cmf: float | None  # Chaikin Money Flow 20 hari
+    flow: Literal["akumulasi", "distribusi", "netral"] | None
+    flow_text: str
+    volume_ratio: float | None  # volume terakhir ÷ rata-rata 20 hari
+    volume_spike: bool
+    volume_text: str
+    foreign_direction: Literal["masuk", "keluar", "datar"] | None  # KSEI, IDX saja
+    foreign_change_pp: float | None
+    foreign_text: str
+    headline: str
+    disclaimer: str
+
+
 class CorrelationPeer(BaseModel):
     """One peer's return-correlation with the active symbol."""
 
@@ -226,12 +243,25 @@ class MomentumReading(BaseModel):
     enough_data: bool
 
 
+class Week52Position(BaseModel):
+    """Posisi harga dalam rentang 52 minggu (George & Hwang 2004)."""
+
+    enough_data: bool
+    pct_of_high: float | None   # harga ÷ puncak 52 minggu, dalam %
+    range_pos: float | None     # 0 = dasar rentang, 100 = puncak rentang
+    high: float | None
+    low: float | None
+    zone: Literal["near_high", "middle", "near_low"] | None
+    text: str
+
+
 class MomentumResponse(BaseModel):
     ticker: str
     readings: list[MomentumReading]
     volume_ok: bool | None  # OBV-confirmed up-move ("Minat Beli"), None if sparse
     volume_text: str
     headline: str
+    week52: Week52Position | None = None
 
 
 class NewsItem(BaseModel):

@@ -31,6 +31,18 @@ fn backend_port(state: State<'_, Backend>) -> u16 {
     state.port
 }
 
+// Write a text file to a path the user picked via the save dialog.
+//
+// The browser download trick (<a download> + blob URL) silently does nothing in
+// the Tauri webview, which is why portfolio export produced no file. Rather than
+// pull in tauri-plugin-fs and widen the permission surface, this one command
+// writes exactly what the frontend hands it — the path always comes from the
+// user's own save-dialog choice.
+#[tauri::command]
+fn write_text_file(path: String, contents: String) -> Result<(), String> {
+    std::fs::write(&path, contents).map_err(|e| format!("Gagal menulis {path}: {e}"))
+}
+
 pub fn run() {
     let port = free_port();
 
@@ -43,7 +55,7 @@ pub fn run() {
             port,
             child: Mutex::new(None),
         })
-        .invoke_handler(tauri::generate_handler![backend_port])
+        .invoke_handler(tauri::generate_handler![backend_port, write_text_file])
         .setup(move |app| {
             // BACKEND_PORT mirrors how the backend is run standalone (AGENTS.md §5),
             // and BACKEND_HOST stays 127.0.0.1 so it's never network-exposed.

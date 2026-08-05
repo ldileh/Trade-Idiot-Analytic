@@ -13,6 +13,7 @@ import RecommendationsPanel from "./components/RecommendationsPanel";
 import SettingsPanel from "./components/SettingsPanel";
 import RRGPanel from "./components/RRGPanel";
 import OwnershipPanel from "./components/OwnershipPanel";
+import BandarmologyPanel from "./components/BandarmologyPanel";
 import PortfolioPanel, { PositionSummary } from "./components/PortfolioPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { addHolding, editHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
@@ -121,6 +122,7 @@ export default function App() {
   const [showRecommendations, setShowRecommendations] = useState(false);
   const [showRRG, setShowRRG] = useState(false);
   const [showOwnership, setShowOwnership] = useState(false);
+  const [showBandar, setShowBandar] = useState(false);
   const [showFundamentals, setShowFundamentals] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -347,6 +349,7 @@ export default function App() {
                 <span className="legend">
                   <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
                   <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
+                  <span className="dot"><span className="sq" style={{ background: "rgba(102,112,138,.45)" }} /> Batang bawah = <b>volume</b> (ramainya transaksi)</span>
                 </span>
               </div>
               <div className="toolbar-right">
@@ -414,6 +417,13 @@ export default function App() {
                         title={query.ticker.toUpperCase().endsWith(".JK") ? "Kepemilikan Lokal/Asing dari KSEI (saham IDX)" : "Hanya untuk saham IDX (.JK)"}
                       >
                         💰 Kepemilikan
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setShowBandar(true); close(); }}
+                        title="Perkiraan jejak akumulasi/distribusi dari harga & volume (proksi, bukan Broker Summary)"
+                      >
+                        🕵️ Jejak Bandar
                       </button>
                     </>
                   )}
@@ -545,6 +555,17 @@ export default function App() {
         onClose={() => setShowOwnership(false)}
       >
         <OwnershipPanel open={showOwnership} ticker={query.ticker} />
+      </Modal>
+
+      {/* Popup jejak bandar — proksi akumulasi/distribusi (CMF + volume + KSEI) */}
+      <Modal
+        open={showBandar}
+        variant="drawer"
+        title="🕵️ Jejak Bandar"
+        subtitle="Perkiraan akumulasi/distribusi dari pola harga & volume (Chaikin Money Flow), lonjakan keramaian transaksi, dan arah kepemilikan asing KSEI. PROKSI — bukan Broker Summary IDX yang berbayar. Bahan bantu belajar, BUKAN ajakan beli."
+        onClose={() => setShowBandar(false)}
+      >
+        <BandarmologyPanel open={showBandar} ticker={query.ticker} interval={query.interval} />
       </Modal>
 
       {/* Popup portofolio — catat kepemilikan; klik posisi untuk membukanya di grafik */}

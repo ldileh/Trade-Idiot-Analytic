@@ -6,6 +6,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.routers import (
     backtest,
+    bandarmology,
     correlation,
     fundamentals,
     indicators,
@@ -51,5 +52,6 @@ def create_app() -> FastAPI:
     app.include_router(marketmap.router)
     app.include_router(correlation.router)
     app.include_router(news.router)
+    app.include_router(bandarmology.router)
 
     return app

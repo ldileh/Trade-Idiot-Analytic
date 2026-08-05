@@ -28,6 +28,12 @@ export interface SeriesLine extends IndicatorSeries {
 const HIST_UP = "#26a69a";
 const HIST_DOWN = "#ef5350";
 
+// Volume bars reuse the candle colours at low opacity: they are background
+// context ("seberapa ramai"), so they must never compete with the price action.
+const VOL_UP = "rgba(22, 163, 74, 0.38)";
+const VOL_DOWN = "rgba(220, 38, 38, 0.38)";
+const VOL_EXTENDED = "rgba(245, 158, 11, 0.38)";
+
 // Canonical colours for the well-known oscillator lines, matching TradingView's
 // defaults; anything else falls back to the hashed palette.
 function lineColor(name: string): string {
@@ -86,6 +92,8 @@ export default function ChartPanel({
   const containerRef = useRef<HTMLDivElement>(null);
   const chartRef = useRef<IChartApi | null>(null);
   const candleRef = useRef<ISeriesApi<"Candlestick"> | null>(null);
+  // Volume bars along the bottom of the price pane (always on).
+  const volumeRef = useRef<ISeriesApi<"Histogram"> | null>(null);
   // Horizontal line marking the latest ("current") price; redrawn each update.
   const nowLineRef = useRef<IPriceLine | null>(null);
   // Horizontal line marking the user's average buy price (from the portfolio).
@@ -153,12 +161,29 @@ export default function ChartPanel({
       wickUpColor: "#16a34a",
       wickDownColor: "#dc2626",
     });
-    candleRef.current.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.08 } });
+    // Leave room at the bottom of the price pane for the volume bars.
+    candleRef.current.priceScale().applyOptions({ scaleMargins: { top: 0.08, bottom: 0.26 } });
     markersRef.current = createSeriesMarkers(candleRef.current, []);
+
+    // Volume histogram, pinned to the lower ~20% of the price pane (the usual
+    // TradingView layout). It uses its own hidden price scale so its magnitude
+    // never distorts the candles' axis.
+    volumeRef.current = chart.addSeries(HistogramSeries, {
+      priceFormat: { type: "volume" },
+      priceScaleId: "volume",
+      priceLineVisible: false,
+      lastValueVisible: false,
+    });
+    volumeRef.current.priceScale().applyOptions({
+      scaleMargins: { top: 0.8, bottom: 0 },
+      visible: false, // bars are a visual cue; the axis numbers would just add noise
+    });
+
     return () => {
       chart.remove();
       chartRef.current = null;
       candleRef.current = null;
+      volumeRef.current = null;
       markersRef.current = null;
       lineRefs.current.clear();
       sigRef.current = "";
@@ -184,6 +209,18 @@ export default function ChartPanel({
       return bar;
     });
     candleRef.current?.setData(data);
+
+    // Volume bars share the candles' colour language: green when the bar closed
+    // up, red when it closed down, amber outside regular hours. Muted so they
+    // stay background context and never compete with the price action.
+    volumeRef.current?.setData(
+      candles.map((c) => ({
+        time: c.time as UTCTimestamp,
+        value: c.volume,
+        color: c.extended ? VOL_EXTENDED : c.close >= c.open ? VOL_UP : VOL_DOWN,
+      })),
+    );
+
     // Only fit when the series shape changes (new ticker/range), so a silent
     // auto-refresh tick that just updates the last candle keeps the user's zoom.
     if (data.length !== fittedLenRef.current) {

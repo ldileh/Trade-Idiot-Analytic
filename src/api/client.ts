@@ -3,6 +3,7 @@
 import type {
   BacktestRequest,
   BacktestResponse,
+  BandarmologyResponse,
   CorrelationResponse,
   FundamentalsResponse,
   IndicatorRequest,
@@ -130,6 +131,14 @@ export function getFundamentals(ticker: string): Promise<FundamentalsResponse> {
   return request<FundamentalsResponse>(`/fundamentals?${q}`, {
     headers: fundamentalsHeader(loadSettings(), ticker),
   });
+}
+
+export function getBandarmology(
+  ticker: string,
+  interval: Interval = "1d",
+): Promise<BandarmologyResponse> {
+  const q = new URLSearchParams({ ticker, interval });
+  return request<BandarmologyResponse>(`/bandarmology?${q}`);
 }
 
 export function getOwnership(ticker: string, months = 12): Promise<OwnershipResponse> {
