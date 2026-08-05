@@ -1,13 +1,21 @@
 // Detected chart patterns as a trading-decision hint. Shows an overall bias
 // banner plus one card per pattern, color-coded bullish/bearish/neutral. All
 // copy comes from the backend in plain Indonesian.
-import type { Pattern, PatternsResponse } from "../types";
+import type { Pattern, PatternAlign, PatternsResponse } from "../types";
 import { InfoTip } from "./ui";
 
 export const KIND_EMOJI: Record<Pattern["kind"], string> = {
   bullish: "🟢",
   bearish: "🔴",
   neutral: "⚪",
+};
+
+// Konteks tren EMA20/50 (Arévalo et al. 2017): pola yang searah tren lebih
+// layak dipercaya daripada yang melawannya.
+const ALIGN_LABEL: Record<PatternAlign, string> = {
+  aligned: "↗ Searah tren",
+  against: "⚠ Melawan tren",
+  unclear: "• Tren belum jelas",
 };
 
 export default function PatternPanel({ data, loading }: { data: PatternsResponse | null; loading: boolean }) {
@@ -34,6 +42,11 @@ export default function PatternPanel({ data, loading }: { data: PatternsResponse
                     <InfoTip text={p.detail} />
                   </div>
                   <div className="p-sum">{p.summary}</div>
+                  {p.align && (
+                    <div className={`p-align ${p.align}`} title={p.align_text}>
+                      {ALIGN_LABEL[p.align]}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

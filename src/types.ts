@@ -66,6 +66,8 @@ export interface BacktestRequest {
 
 export type PatternKind = "bullish" | "bearish" | "neutral";
 
+export type PatternAlign = "aligned" | "against" | "unclear";
+
 export interface Pattern {
   key: string;
   label: string;
@@ -73,6 +75,8 @@ export interface Pattern {
   summary: string;
   detail: string;
   at: number | null; // Unix epoch seconds for a chart marker, or null
+  align?: PatternAlign | null; // konteks tren EMA20/50; null = tidak berlaku
+  align_text?: string;
 }
 
 export interface PatternsResponse {

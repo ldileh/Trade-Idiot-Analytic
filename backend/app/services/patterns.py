@@ -40,6 +40,78 @@ def _sma(close: np.ndarray, window: int) -> np.ndarray:
     return pd.Series(close).rolling(window).mean().to_numpy()
 
 
+def _ema(close: np.ndarray, span: int) -> np.ndarray:
+    return pd.Series(close).ewm(span=span, adjust=False).mean().to_numpy()
+
+
+# --- EMA trend context (Arévalo et al. 2017) --------------------------------
+# A pattern read in isolation is weak: the same Double Bottom means one thing in
+# an uptrend and another against a downtrend. Arévalo et al. filter flag
+# patterns against short/medium EMAs before acting on them and report higher
+# profit at lower risk than the unfiltered rule. We don't trade, so we don't
+# drop patterns — we label each one with its trend context so a beginner sees
+# which signals have the prevailing trend behind them and which fight it.
+_EMA_FAST, _EMA_SLOW = 20, 50
+_MIN_BARS_FOR_TREND = _EMA_SLOW + 5  # let the slow EMA settle before trusting it
+
+
+def _ema_trend(close: np.ndarray) -> str:
+    """Prevailing trend as "bullish" | "bearish" | "neutral" from EMA20 vs EMA50.
+
+    Neutral when there is too little history, or the two EMAs sit within 0.5% of
+    each other — that gap is noise, not a trend, and calling it either way would
+    put a confident label on a coin flip.
+    """
+    if len(close) < _MIN_BARS_FOR_TREND:
+        return "neutral"
+    fast = _ema(close, _EMA_FAST)[-1]
+    slow = _ema(close, _EMA_SLOW)[-1]
+    if np.isnan(fast) or np.isnan(slow) or not slow:
+        return "neutral"
+    gap = (fast - slow) / abs(slow)
+    if gap > 0.005:
+        return "bullish"
+    if gap < -0.005:
+        return "bearish"
+    return "neutral"
+
+
+# Trend-context copy, keyed by (pattern kind, prevailing trend).
+_ALIGNED = (
+    "Searah tren — pola ini sejalan dengan arah harga saat ini (EMA20 vs EMA50), "
+    "jadi lebih layak diperhatikan."
+)
+_AGAINST = (
+    "Melawan tren — pola ini berlawanan dengan arah harga saat ini (EMA20 vs EMA50). "
+    "Pola pembalikan sering gagal saat melawan tren; tunggu konfirmasi."
+)
+_NO_TREND = (
+    "Tren belum jelas — harga mendatar (EMA20 ≈ EMA50), jadi pola ini belum punya "
+    "dukungan arah. Sinyal di kondisi mendatar lebih sering meleset."
+)
+
+
+def _annotate_trend(patterns: list[Pattern], trend: str) -> None:
+    """Tag each pattern with its EMA trend context, in place.
+
+    Adds `align` ("aligned" | "against" | "unclear") plus a plain-Indonesian
+    `align_text`. Directionless patterns (the trend/sideways reading itself)
+    are left unannotated — labelling the trend against itself is circular.
+    """
+    for p in patterns:
+        # The trend reading IS the trend; don't grade it against itself.
+        if p["key"] in ("uptrend", "downtrend", "sideways") or p["kind"] == "neutral":
+            p["align"] = None
+            p["align_text"] = ""
+            continue
+        if trend == "neutral":
+            p["align"], p["align_text"] = "unclear", _NO_TREND
+        elif p["kind"] == trend:
+            p["align"], p["align_text"] = "aligned", _ALIGNED
+        else:
+            p["align"], p["align_text"] = "against", _AGAINST
+
+
 def _rsi(close: np.ndarray, window: int = 14) -> float:
     delta = pd.Series(close).diff()
     gain = delta.clip(lower=0).rolling(window).mean()
@@ -229,14 +301,30 @@ def detect(df: pd.DataFrame) -> tuple[str, str, list[Pattern]]:
     patterns += _double(high, low, index)
     patterns += _head_shoulders(high, low, index)
 
-    score = sum(1 for p in patterns if p["kind"] == "bullish") - sum(1 for p in patterns if p["kind"] == "bearish")
+    trend = _ema_trend(close)
+    _annotate_trend(patterns, trend)
+
+    # Weight by trend context rather than counting every pattern equally: a
+    # signal fighting the prevailing trend is the one most likely to fail
+    # (Arévalo et al. 2017), so it counts for less than one riding it.
+    _WEIGHT = {"aligned": 1.5, "against": 0.5, "unclear": 1.0, None: 1.0}
+    score = sum(
+        _WEIGHT[p.get("align")] * (1 if p["kind"] == "bullish" else -1)
+        for p in patterns
+        if p["kind"] in ("bullish", "bearish")
+    )
+    trend_note = {
+        "bullish": " Arah harga saat ini NAIK (EMA20 di atas EMA50).",
+        "bearish": " Arah harga saat ini TURUN (EMA20 di bawah EMA50).",
+        "neutral": " Arah harga belum jelas (EMA20 ≈ EMA50).",
+    }[trend]
     if score > 0:
         bias, bias_text = "bullish", "Mayoritas pola condong NAIK. Suasana cenderung mendukung beli — tetap kelola risiko."
     elif score < 0:
         bias, bias_text = "bearish", "Mayoritas pola condong TURUN. Suasana cenderung waspada — hati-hati membeli."
     else:
         bias, bias_text = "neutral", "Pola saling imbang / belum jelas. Tidak ada dorongan kuat ke satu arah."
-    return bias, bias_text, patterns
+    return bias, bias_text + trend_note, patterns
 
 
 def demo() -> None:
@@ -249,15 +337,42 @@ def demo() -> None:
         return pd.DataFrame({"Open": c, "High": c * 1.01, "Low": c * 0.99, "Close": c}, index=idx)
 
     up = frame(list(np.linspace(100, 200, 220)))
-    bias, _, pats = detect(up)
+    bias, text, pats = detect(up)
     assert bias == "bullish", (bias, [p["key"] for p in pats])
     assert any(p["key"] in ("uptrend", "golden_cross", "breakout") for p in pats)
 
-    down = frame(list(np.linspace(200, 100, 220)))
-    bias, _, pats = detect(down)
-    assert bias == "bearish", (bias, [p["key"] for p in pats])
+    # EMA trend context: in a clean uptrend the bullish patterns ride the trend.
+    assert _ema_trend(up["Close"].to_numpy(dtype=float)) == "bullish"
+    assert "NAIK" in text, text
+    _TREND_KEYS = ("uptrend", "downtrend", "sideways")
+    for p in pats:
+        if p["kind"] == "bullish" and p["key"] not in _TREND_KEYS:
+            assert p["align"] == "aligned", (p["key"], p["align"])
+            assert p["align_text"], p["key"]
+    # The trend reading itself is never graded against itself (circular).
+    for p in pats:
+        if p["key"] in _TREND_KEYS:
+            assert p["align"] is None, (p["key"], p["align"])
 
-    print("patterns.demo OK:", [p["key"] for p in pats])
+    down = frame(list(np.linspace(200, 100, 220)))
+    bias, text, pats = detect(down)
+    assert bias == "bearish", (bias, [p["key"] for p in pats])
+    assert _ema_trend(down["Close"].to_numpy(dtype=float)) == "bearish"
+    assert "TURUN" in text, text
+
+    # Flat prices -> no trend, so patterns are "unclear" rather than mislabelled.
+    flat = frame([100.0] * 220)
+    assert _ema_trend(flat["Close"].to_numpy(dtype=float)) == "neutral"
+    # Too little history must not fake a trend either.
+    assert _ema_trend(np.linspace(100, 200, 10)) == "neutral"
+
+    # A bearish pattern inside an uptrend is weighted down, not counted equally.
+    fighting = [{"key": "double_top", "kind": "bearish"}, {"key": "breakout", "kind": "bullish"}]
+    _annotate_trend(fighting, "bullish")
+    assert fighting[0]["align"] == "against", fighting[0]
+    assert fighting[1]["align"] == "aligned", fighting[1]
+
+    print("patterns.demo OK:", [(p["key"], p.get("align")) for p in pats])
 
 
 if __name__ == "__main__":

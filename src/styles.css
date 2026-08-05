@@ -240,6 +240,15 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .pattern.neutral { border-left-color: var(--border-strong); }
 .pattern .p-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13.5px; }
 .pattern .p-sum { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.45; }
+/* Konteks tren EMA20/50 per pola — searah tren lebih layak dipercaya. */
+.pattern .p-align {
+  display: inline-block; margin-top: 6px; padding: 2px 7px;
+  border-radius: 999px; font-size: 11px; font-weight: 700;
+  border: 1px solid currentColor; cursor: help;
+}
+.pattern .p-align.aligned { color: var(--up); }
+.pattern .p-align.against { color: var(--warn); }
+.pattern .p-align.unclear { color: var(--muted); }
 
 /* ---- recommendations (ranked watchlist picks) ------------------------------ */
 .rec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
