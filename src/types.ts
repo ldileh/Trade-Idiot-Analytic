@@ -159,8 +159,8 @@ export interface AltmanScore {
 export interface FundamentalsResponse {
   ticker: string;
   name: string;
-  score: number; // 0–100
-  bias: "good" | "neutral" | "bad";
+  score: number | null; // 0–100, null = rasio terlalu sedikit untuk dinilai
+  bias: "good" | "neutral" | "bad" | "unknown";
   bias_text: string;
   metrics: FundamentalMetric[];
   piotroski?: PiotroskiScore | null;

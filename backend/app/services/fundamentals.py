@@ -19,7 +19,36 @@ from app.services.scores import get_scores
 # Fundamentals barely move intraday; cache longer than price data.
 _CACHE: dict[str, tuple[float, dict]] = {}
 _CACHE_TTL_SECONDS = 3600.0
+# Yahoo sometimes answers an equity with a partial .info (rate limiting, or a
+# half-filled quoteSummary). Caching that for the full hour freezes a broken
+# panel — every ratio reads "tidak ada data" until the TTL lapses. Keep such
+# responses only briefly so the next view retries instead of being stuck.
+_PARTIAL_TTL_SECONDS = 60.0
 _LOCK = Lock()
+
+# A healthy equity payload carries most of these. The DEWA.JK case that prompted
+# this kept marketCap/PE/PBV but lost every profitability ratio, so requiring
+# merely one is not enough — we check coverage instead. Non-equities (index/ETF)
+# have no ratios by nature and are cached normally, not retried every minute.
+_CORE_KEYS = (
+    "trailingPE", "priceToBook", "returnOnEquity", "returnOnAssets",
+    "profitMargins", "trailingEps", "marketCap",
+)
+_MIN_CORE_PRESENT = 4
+
+
+def _is_partial(info: dict) -> bool:
+    """True when an equity came back missing most of its core ratios."""
+    if not info:
+        return True
+    if info.get("quoteType") != "EQUITY":
+        return False  # index/ETF/crypto: missing ratios are expected, not a fault
+    present = sum(
+        1 for k in _CORE_KEYS
+        if isinstance(info.get(k), (int, float)) and not isinstance(info.get(k), bool)
+    )
+    return present < _MIN_CORE_PRESENT
+
 
 # verdict: +1 good, 0 neutral, -1 bad. None value -> "no data", scored neutral.
 Verdict = int
@@ -32,9 +61,18 @@ class FundamentalsError(Exception):
 def _info(ticker: str) -> dict:
     cached = _CACHE.get(ticker)
     now = time.time()
-    if cached and (now - cached[0]) < _CACHE_TTL_SECONDS:
-        return cached[1]
+    if cached:
+        # A partial payload gets a short lease so a transient Yahoo hiccup can't
+        # pin an empty panel in place for the whole hour.
+        ttl = _PARTIAL_TTL_SECONDS if _is_partial(cached[1]) else _CACHE_TTL_SECONDS
+        if (now - cached[0]) < ttl:
+            return cached[1]
     info = yf.Ticker(ticker).info or {}
+    # Prefer a good cached payload over a fresh partial one: when the retry comes
+    # back degraded, keep serving what we already had rather than regressing the
+    # panel to "tidak ada data".
+    if cached and _is_partial(info) and not _is_partial(cached[1]):
+        return cached[1]
     with _LOCK:
         _CACHE[ticker] = (now, info)
     return info
@@ -114,13 +152,20 @@ _METRICS: list[tuple[str, str, str, str, Callable[[float], str], Callable[[float
 
 _VERDICT_TEXT = {1: "bagus", 0: "netral", -1: "perlu diwaspadai"}
 
+# Below this many judged metrics the composite is noise, not a verdict: one
+# lucky PER would otherwise read "100/100 — fundamental tergolong sehat" while
+# every profitability ratio is missing. We withhold the score instead.
+_MIN_JUDGED_FOR_SCORE = 4
+
 
 def get_fundamentals(ticker: str) -> dict:
     """Build the fundamentals payload: per-metric verdicts + a composite score.
 
     Score = share of judged (non-neutral, has-data) metrics that are positive,
     on a 0–100 scale. Raises FundamentalsError if .info has none of our fields
-    (e.g. an index or a delisted ticker).
+    (e.g. an index or a delisted ticker). When too few metrics could be judged
+    the score is withheld (`score=None`, `bias="unknown"`) rather than reported
+    from a sliver of data.
     """
     ticker = ticker.strip().upper()
     info = _info(ticker)
@@ -153,13 +198,23 @@ def get_fundamentals(ticker: str) -> dict:
             "Cek kode sahamnya, atau ini mungkin indeks/ETF tanpa laporan keuangan."
         )
 
-    score = round(100 * good / judged) if judged else 50
-    if score >= 70:
-        bias, bias_text = "good", "Fundamental tergolong sehat: sebagian besar rasio positif."
-    elif score <= 40:
-        bias, bias_text = "bad", "Fundamental lemah: banyak rasio yang perlu diwaspadai."
+    if judged < _MIN_JUDGED_FOR_SCORE:
+        # Too thin to grade. Say so plainly instead of implying a healthy read.
+        score = None
+        bias = "unknown"
+        bias_text = (
+            f"Data belum cukup untuk memberi skor ({judged} dari "
+            f"{_MIN_JUDGED_FOR_SCORE} rasio minimal bisa dinilai). "
+            "Sumber data mungkin sedang tidak lengkap — coba lagi beberapa saat lagi."
+        )
     else:
-        bias, bias_text = "neutral", "Fundamental campuran: ada yang bagus, ada yang perlu dicermati."
+        score = round(100 * good / judged)
+        if score >= 70:
+            bias, bias_text = "good", "Fundamental tergolong sehat: sebagian besar rasio positif."
+        elif score <= 40:
+            bias, bias_text = "bad", "Fundamental lemah: banyak rasio yang perlu diwaspadai."
+        else:
+            bias, bias_text = "neutral", "Fundamental campuran: ada yang bagus, ada yang perlu dicermati."
 
     # Two separate research-backed scores (Piotroski / Altman) alongside the
     # composite. Fail soft: if the statements aren't reachable, omit them rather
@@ -197,4 +252,21 @@ if __name__ == "__main__":
     assert pe["display"] == "10.00×" and pe["verdict"] == 1
     missing = next(x for x in out["metrics"] if x["key"] == "currentRatio")
     assert missing["value"] is None and missing["display"] == "tidak ada data"
+
+    # Too few judged metrics -> withhold the score instead of reporting 100.
+    # This is the DEWA.JK regression: only trailingPE survived, which used to
+    # render "100/100 — fundamental tergolong sehat".
+    _CACHE["THIN"] = (time.time(), {"trailingPE": 10, "priceToBook": 2.5, "marketCap": 1e12})
+    thin = get_fundamentals("THIN")
+    assert thin["score"] is None, thin["score"]
+    assert thin["bias"] == "unknown", thin["bias"]
+    assert "belum cukup" in thin["bias_text"], thin["bias_text"]
+
+    # A partial equity payload must not earn the full one-hour cache lease.
+    full = {k: 1.0 for k in _CORE_KEYS} | {"quoteType": "EQUITY"}
+    assert not _is_partial(full)
+    assert _is_partial({"quoteType": "EQUITY", "trailingPE": 4.3, "marketCap": 1e12})
+    assert _is_partial({})
+    # Indices/ETFs legitimately have no ratios -> cached normally, not retried.
+    assert not _is_partial({"quoteType": "ETF", "shortName": "Some ETF"})
     print("fundamentals.py self-check OK")

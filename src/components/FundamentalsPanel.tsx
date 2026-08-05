@@ -39,7 +39,11 @@ export default function FundamentalsPanel({
                style={{ marginTop: 4, marginBottom: 12 }}>
             <span className="emoji">{VERDICT_EMOJI[data.bias === "good" ? 1 : data.bias === "bad" ? -1 : 0]}</span>
             <span>
-              <b>Skor sehat: {data.score}/100</b> — {data.bias_text}
+              {data.score == null ? (
+                <><b>Skor sehat: belum bisa dinilai</b> — {data.bias_text}</>
+              ) : (
+                <><b>Skor sehat: {data.score}/100</b> — {data.bias_text}</>
+              )}
             </span>
           </div>
 
