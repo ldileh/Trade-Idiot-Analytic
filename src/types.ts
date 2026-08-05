@@ -171,6 +171,22 @@ export interface FundamentalsResponse {
   altman?: AltmanScore | null;
 }
 
+// Proksi jejak akumulasi/distribusi — BUKAN Broker Summary IDX.
+export interface BandarmologyResponse {
+  ticker: string;
+  cmf: number | null;
+  flow: "akumulasi" | "distribusi" | "netral" | null;
+  flow_text: string;
+  volume_ratio: number | null;
+  volume_spike: boolean;
+  volume_text: string;
+  foreign_direction: "masuk" | "keluar" | "datar" | null;
+  foreign_change_pp: number | null;
+  foreign_text: string;
+  headline: string;
+  disclaimer: string;
+}
+
 export interface CorrelationPeer {
   sym: string;
   corr: number;
@@ -202,12 +218,23 @@ export interface MomentumReading {
   enough_data: boolean;
 }
 
+export interface Week52Position {
+  enough_data: boolean;
+  pct_of_high: number | null; // harga ÷ puncak 52 minggu, dalam %
+  range_pos: number | null; // 0 = dasar rentang, 100 = puncak
+  high: number | null;
+  low: number | null;
+  zone: "near_high" | "middle" | "near_low" | null;
+  text: string;
+}
+
 export interface MomentumResponse {
   ticker: string;
   readings: MomentumReading[];
   volume_ok: boolean | null;
   volume_text: string;
   headline: string;
+  week52?: Week52Position | null;
 }
 
 export interface NewsItem {

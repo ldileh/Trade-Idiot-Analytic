@@ -6,7 +6,8 @@ import { getMarketMap } from "../api/client";
 import { currencyFor, isIDX, money, shares } from "../format";
 import { suggest } from "../suggestions";
 import { getNews, getPatterns } from "../api/client";
-import { parseHoldings, type Holding } from "../portfolio";
+import { parseHoldings, toCsv, type Holding } from "../portfolio";
+import { saveTextFile } from "../download";
 import type { NewsResponse, PatternsResponse } from "../types";
 import { STOCKS_BY_MARKET } from "../stocks";
 import { InfoTip } from "./ui";
@@ -55,15 +56,23 @@ export default function PortfolioPanel({
     }
   }
 
-  // Unduh portofolio saat ini sebagai JSON (bisa diimpor lagi).
-  function exportJson() {
-    const blob = new Blob([JSON.stringify(holdings, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "portofolio.json";
-    a.click();
-    URL.revokeObjectURL(url);
+  // Unduh portofolio saat ini (bisa diimpor lagi lewat tombol Impor).
+  // Lewat saveTextFile karena unduhan ala browser tidak berfungsi di Tauri.
+  async function exportAs(format: "json" | "csv") {
+    if (holdings.length === 0) {
+      setImportMsg("Portofolio masih kosong — tidak ada yang bisa diekspor.");
+      return;
+    }
+    const [contents, name, filter] =
+      format === "json"
+        ? [JSON.stringify(holdings, null, 2), "portofolio.json", { name: "JSON", extensions: ["json"] }]
+        : [toCsv(holdings), "portofolio.csv", { name: "CSV", extensions: ["csv"] }];
+    try {
+      const saved = await saveTextFile(contents, name, filter);
+      setImportMsg(saved ? `Portofolio diekspor ke ${name}. ✅` : null);
+    } catch (e) {
+      setImportMsg(`Gagal menyimpan file: ${e instanceof Error ? e.message : String(e)}`);
+    }
   }
   const [sym, setSym] = useState("");
   const [qty, setQty] = useState("");
@@ -211,9 +220,14 @@ export default function PortfolioPanel({
           📥 Impor (CSV / JSON)
         </button>
         {holdings.length > 0 && (
-          <button type="button" className="btn-ghost btn-sm" onClick={exportJson}>
-            📤 Ekspor JSON
-          </button>
+          <>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => void exportAs("csv")}>
+              📤 Ekspor CSV
+            </button>
+            <button type="button" className="btn-ghost btn-sm" onClick={() => void exportAs("json")}>
+              📤 Ekspor JSON
+            </button>
+          </>
         )}
         <InfoTip text="Impor dari file JSON (hasil ekspor app ini) atau CSV dengan kolom kode, jumlah (lot/lembar), dan harga — mis. ekspor dari Stockbit. Kode .JK dengan kolom 'lot' otomatis dikali 100 lembar. Data digabung ke portofolio yang ada." />
         {importMsg && <span className="muted" style={{ fontSize: 12 }}>{importMsg}</span>}

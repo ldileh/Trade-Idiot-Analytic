@@ -250,6 +250,27 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .pattern .p-align.against { color: var(--warn); }
 .pattern .p-align.unclear { color: var(--muted); }
 
+/* ---- meteran posisi 52 minggu (George & Hwang 2004) ------------------------ */
+.w52 { --w52-color: var(--border-strong); }
+.w52.good { --w52-color: var(--up); }
+.w52.bad { --w52-color: var(--down); }
+.w52-track {
+  position: relative; height: 10px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.w52-fill {
+  position: absolute; inset: 0 auto 0 0; border-radius: 999px;
+  background: var(--w52-color); opacity: .28;
+}
+.w52-marker {
+  position: absolute; top: 50%; width: 3px; height: 18px; border-radius: 2px;
+  background: var(--w52-color); transform: translate(-50%, -50%);
+}
+.w52-ends {
+  display: flex; justify-content: space-between; gap: 8px;
+  margin-top: 4px; font-size: 11px; color: var(--muted);
+}
+
 /* ---- recommendations (ranked watchlist picks) ------------------------------ */
 .rec-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
 .rec {

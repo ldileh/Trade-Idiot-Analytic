@@ -46,6 +46,15 @@ export function removeHolding(list: Holding[], sym: string): Holding[] {
   return list.filter((h) => h.sym !== sym);
 }
 
+// Susun portofolio jadi CSV. Header-nya sengaja memakai nama kolom yang juga
+// dikenali parseHoldings (kode/lembar/harga), jadi hasil ekspor bisa diimpor
+// kembali. Jumlah ditulis dalam LEMBAR (bukan lot) supaya tidak ambigu — kolom
+// "lot" akan dikali 100 saat impor.
+export function toCsv(list: Holding[]): string {
+  const rows = list.map((h) => `${h.sym},${h.qty},${h.price}`);
+  return ["kode,lembar,harga", ...rows].join("\n") + "\n";
+}
+
 // Parse portofolio dari isi file JSON atau CSV. Menerima:
 //  - JSON: array [{sym, qty, price}] (format ekspor app ini), atau
 //  - CSV : header dengan kolom kode/sym, lot/qty/lembar, harga/price

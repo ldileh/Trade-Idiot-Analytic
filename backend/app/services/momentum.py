@@ -26,6 +26,82 @@ def _direction(pct: float) -> str:
     return "datar"
 
 
+# --- 52-week high proximity (George & Hwang 2004) ---------------------------
+# "The 52-Week High and Momentum Investing", Journal of Finance 59(5):2145-2176.
+# Nearness to the 52-week high predicts future returns and *dominates* past
+# returns as a predictor; the effect replicates internationally (18 of 20 markets
+# positive, 10 significantly so — Du 2008 / Marshall & Cahan). The behavioural
+# story is anchoring: investors treat the 52-week high as a reference point and
+# under-react to good news when price sits near it.
+#
+# We report the raw position rather than a buy signal: near-high means "the
+# anchor effect is in play", NOT "beli sekarang". A stock can sit near its high
+# all the way down a reversal.
+_NEAR_HIGH = 0.95   # within 5% of the 52w high
+_NEAR_LOW = 0.20    # within the bottom 20% of the 52w range
+
+
+def _fifty_two_week(df: pd.DataFrame) -> dict:
+    """Where the latest close sits inside the 52-week high/low range.
+
+    `pct_of_high` = close / 52w-high (the George & Hwang measure). `range_pos`
+    = 0..1 position between the 52w low and high, which is what the visual bar
+    renders. Needs ~6 months of bars before the range means anything.
+    """
+    # Use High/Low when present so the range matches what a chart shows; some
+    # cached frames only carry Close, so fall back to it rather than fail.
+    high_src = df["High"] if "High" in df else df["Close"]
+    low_src = df["Low"] if "Low" in df else df["Close"]
+    close = df["Close"].astype(float)
+    n = len(close)
+    if n < 126:  # < ~6 months: a "52-week" range would be misleading
+        return {"enough_data": False, "pct_of_high": None, "range_pos": None,
+                "high": None, "low": None, "zone": None, "text": "belum cukup data"}
+
+    window = min(n, 252)  # ~1 trading year
+    hi = float(high_src.astype(float).iloc[-window:].max())
+    lo = float(low_src.astype(float).iloc[-window:].min())
+    now = float(close.iloc[-1])
+    if hi <= 0 or hi <= lo:
+        return {"enough_data": False, "pct_of_high": None, "range_pos": None,
+                "high": None, "low": None, "zone": None, "text": "belum cukup data"}
+
+    pct_of_high = now / hi
+    range_pos = (now - lo) / (hi - lo)
+
+    if pct_of_high >= _NEAR_HIGH:
+        zone = "near_high"
+        text = (
+            "Harga menempel di puncak 52 minggu. Riset George & Hwang (2004) menemukan "
+            "saham di dekat puncaknya cenderung melanjutkan penguatan — investor memakai "
+            "puncak lama sebagai 'jangkar' dan telat bereaksi pada kabar baik. "
+            "Bukan jaminan: dekat puncak juga berarti sudah naik banyak."
+        )
+    elif range_pos <= _NEAR_LOW:
+        zone = "near_low"
+        text = (
+            "Harga ada di dasar rentang 52 minggu. Secara historis kelompok ini justru "
+            "cenderung tertinggal, bukan langsung memantul — 'murah' belum tentu bagus. "
+            "Butuh alasan kuat lain sebelum masuk."
+        )
+    else:
+        zone = "middle"
+        text = (
+            "Harga di tengah rentang 52 minggu — tidak dekat puncak, tidak di dasar. "
+            "Efek jangkar puncak 52 minggu tidak menonjol di posisi ini."
+        )
+
+    return {
+        "enough_data": True,
+        "pct_of_high": round(pct_of_high * 100, 1),
+        "range_pos": round(range_pos * 100, 1),
+        "high": hi,
+        "low": lo,
+        "zone": zone,
+        "text": text,
+    }
+
+
 def compute(df: pd.DataFrame) -> dict:
     """Return per-period momentum + a volume-confirmation read from an OHLCV
     frame. Reports 'belum cukup data' when the history is too short."""
@@ -83,6 +159,7 @@ def compute(df: pd.DataFrame) -> dict:
         "volume_ok": volume_ok,
         "volume_text": volume_text,
         "headline": headline,
+        "week52": _fifty_two_week(df),
     }
 
 
@@ -96,7 +173,37 @@ def demo() -> None:
     out = compute(df)
     assert all(r["direction"] == "naik" for r in out["readings"]), out["readings"]
     assert out["volume_ok"] is True, out
-    print("momentum.demo OK:", out["headline"])
+
+    # 52-week high: a steady uptrend ends exactly AT its own high.
+    w = out["week52"]
+    assert w["enough_data"] and w["zone"] == "near_high", w
+    assert w["pct_of_high"] == 100.0, w
+    assert w["range_pos"] == 100.0, w
+
+    # A steady downtrend ends at the bottom of its range.
+    down = pd.DataFrame(
+        {"Close": pd.Series(np.linspace(200, 100, 200), index=idx), "Volume": np.full(200, 1000.0)},
+        index=idx,
+    )
+    w = compute(down)["week52"]
+    assert w["zone"] == "near_low", w
+    assert w["range_pos"] == 0.0, w
+
+    # Short history must not fake a 52-week range.
+    short_idx = pd.date_range("2024-01-01", periods=60, freq="D", tz="UTC")
+    short = pd.DataFrame(
+        {"Close": pd.Series(np.linspace(100, 120, 60), index=short_idx), "Volume": np.full(60, 1000.0)},
+        index=short_idx,
+    )
+    assert compute(short)["week52"]["enough_data"] is False
+
+    # High/Low columns are used for the range when present (wider than Close).
+    with_hl = df.assign(High=df["Close"] * 1.10, Low=df["Close"] * 0.90)
+    w = compute(with_hl)["week52"]
+    assert w["high"] > float(df["Close"].max()), w  # range came from High, not Close
+    assert w["zone"] == "middle", w  # last close sits below that wider high
+
+    print("momentum.demo OK:", out["headline"], "| 52w:", out["week52"]["zone"])
 
 
 if __name__ == "__main__":
