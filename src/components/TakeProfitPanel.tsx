@@ -4,8 +4,8 @@
 // harga visual + kartu penjelasan. Semua angka datang dari backend /takeprofit.
 import { useEffect, useState } from "react";
 import { getTakeProfit, screenTakeProfit } from "../api/client";
-import { money } from "../format";
-import type { Holding } from "../portfolio";
+import { isIDX, money, shares } from "../format";
+import { splitQty, type Holding } from "../portfolio";
 import type {
   TakeProfitCandidate,
   TakeProfitMethod,
@@ -91,6 +91,11 @@ function PriceMap({ data, sym }: { data: TakeProfitResponse; sym: string }) {
       })}
     </div>
   );
+}
+
+// "6 lot (600 lembar)" untuk IDX, "12 lembar" untuk sisanya.
+function qtyText(qty: number, sym: string): string {
+  return isIDX(sym) ? `${shares(qty / 100, sym)} lot (${shares(qty, sym)} lembar)` : `${shares(qty, sym)} lembar`;
 }
 
 function TargetRow({ t, sym, showEntry }: { t: TakeProfitTarget; sym: string; showEntry: boolean }) {
@@ -396,6 +401,9 @@ export default function TakeProfitPanel({
   // pada posisi rugi/untung besar basisnya sudah dipindah ke harga sekarang.
   const showEntry = data.has_position;
   const tr = data.trailing;
+  // Kepemilikan nyata → rencana bertahap bisa disebut dalam lot, bukan "1/3".
+  const held = holdings.find((h) => h.sym === sym);
+  const split = held ? splitQty(held.qty, sym) : null;
 
   return (
     <div>
@@ -506,28 +514,65 @@ export default function TakeProfitPanel({
             <span style={{ fontWeight: 800, fontSize: 13.5 }}>🧩 Rencana Jual Bertahap</span>
             <InfoTip text="Menjual sekaligus memaksa kamu benar dalam satu tebakan. Dibagi tiga: sebagian diamankan awal, sebagian di target utama, sisanya dibiarkan berjalan dengan trailing stop. Pembagian 1/3 ini konvensi manajemen posisi, bukan hasil satu riset tunggal." />
           </div>
+          {split == null && (
+            <p className="p-sum" style={{ margin: "0 0 8px" }}>
+              {held
+                ? `Kepemilikanmu (${qtyText(held.qty, sym)}) terlalu kecil untuk dibagi tiga — pakai satu target saja.`
+                : "Catat jumlah kepemilikanmu di 💼 Portofolio, dan rencana ini otomatis berubah jadi jumlah lot yang konkret."}
+            </p>
+          )}
           <ol className="tp-plan">
-            {data.plan.map((s) => (
-              <li key={s.portion}>
-                <div className="tp-plan-head">
-                  <b>{s.portion}</b>
-                  {s.price != null ? (
-                    <span className="tp-target-price">
-                      {money(s.price, sym)}
-                      {s.pct_from_now != null && (
-                        <span className="tp-map-diff">
-                          {s.pct_from_now >= 0 ? "+" : ""}
-                          {s.pct_from_now}%
+            {data.plan.map((s, i) => {
+              const part = split?.[i] ?? null;
+              const gain = part != null && s.price != null && buyPrice != null ? part * (s.price - buyPrice) : null;
+              return (
+                <li key={s.portion}>
+                  <div className="tp-plan-head">
+                    <b>{s.portion}</b>
+                    {s.price != null ? (
+                      <span className="tp-target-price">
+                        {money(s.price, sym)}
+                        {s.pct_from_now != null && (
+                          <span className="tp-map-diff">
+                            {s.pct_from_now >= 0 ? "+" : ""}
+                            {s.pct_from_now}%
+                          </span>
+                        )}
+                      </span>
+                    ) : (
+                      <span className="muted" style={{ fontSize: 12 }}>—</span>
+                    )}
+                  </div>
+                  {/* Jumlah nyata dari portofolio: "jual berapa lot di harga berapa". */}
+                  {part != null && (
+                    <div className="tp-plan-qty">
+                      {i === 2 && s.price != null ? (
+                        <>
+                          Sisakan <b>{qtyText(part, sym)}</b> — jual hanya bila turun ke {money(s.price, sym)}
+                        </>
+                      ) : (
+                        <>
+                          Jual <b>{qtyText(part, sym)}</b>
+                          {s.price != null && (
+                            <>
+                              {" "}
+                              di {money(s.price, sym)} → terima <b>{money(part * s.price, sym)}</b>
+                            </>
+                          )}
+                        </>
+                      )}
+                      {gain != null && (
+                        <span className={gain >= 0 ? "up" : "down"}>
+                          {" "}
+                          · {gain >= 0 ? "untung" : "rugi"} {money(Math.abs(gain), sym)}
                         </span>
                       )}
-                    </span>
-                  ) : (
-                    <span className="muted" style={{ fontSize: 12 }}>—</span>
+                    </div>
                   )}
-                </div>
-                <div className="p-sum">{s.note}</div>
-              </li>
-            ))}
+                  <div className="p-sum">{s.note}</div>
+                </li>
+              );
+            })}
           </ol>
         </div>
       )}

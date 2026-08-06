@@ -1,6 +1,6 @@
 // Self-check for parseHoldings — run with: npx tsx src/portfolio.test.ts
 import assert from "node:assert";
-import { parseHoldings, toCsv } from "./portfolio";
+import { parseHoldings, splitQty, toCsv } from "./portfolio";
 
 // JSON export round-trip.
 let r = parseHoldings('[{"sym":"AAPL","qty":10,"price":150}]');
@@ -38,5 +38,11 @@ assert.deepEqual(parseHoldings(toCsv(held)), held);
 // Portofolio kosong tetap menghasilkan CSV berheader yang valid (bukan crash).
 assert.equal(toCsv([]), "kode,lembar,harga\n");
 assert.deepEqual(parseHoldings(toCsv([])), []);
+
+// Rencana jual bertahap: porsi IDX selalu kelipatan lot dan totalnya utuh.
+assert.deepEqual(splitQty(500, "BBCA.JK"), [100, 100, 300]); // 5 lot → sisa pembulatan ke porsi akhir
+assert.deepEqual(splitQty(900, "BBCA.JK"), [300, 300, 300]);
+assert.equal(splitQty(250, "BBCA.JK"), null); // 2 lot, tak bisa dibagi tiga
+assert.deepEqual(splitQty(9, "AAPL"), [3, 3, 3]);
 
 console.log("portfolio.test.ts OK");

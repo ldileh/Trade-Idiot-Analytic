@@ -238,8 +238,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .pattern.bullish { border-left-color: var(--up); }
 .pattern.bearish { border-left-color: var(--down); }
 .pattern.neutral { border-left-color: var(--border-strong); }
-.pattern .p-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13.5px; }
-.pattern .p-sum { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.45; }
+/* Dipakai juga di luar .pattern (take profit, referensi) — jangan diikat ke .pattern. */
+.p-head { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-weight: 800; font-size: 13.5px; }
+.p-sum { color: var(--muted); font-size: 12.5px; margin-top: 4px; line-height: 1.45; }
 /* Konteks tren EMA20/50 per pola — searah tren lebih layak dipercaya. */
 .pattern .p-align {
   display: inline-block; margin-top: 6px; padding: 2px 7px;
@@ -462,14 +463,15 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .app-version { font-size: 12px; font-weight: 600; color: var(--muted); vertical-align: middle; }
 
 /* ---- chart toolbar --------------------------------------------------------- */
-/* Sejak legenda pindah ke .chart-foot, toolbar hanya berisi tombol aksi — rata
-   kiri, tidak lagi space-between antara dua sisi. */
+/* Dua sisi: aksi grafik (perbarui, layar penuh) menempel kiri, panel analisa
+   didorong ke kanan lewat margin auto — tetap rapi walau barisnya wrap. */
 .toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.toolbar-right { display: flex; align-items: center; gap: 6px; flex: none; flex-wrap: wrap; }
+.toolbar-left, .toolbar-right { display: flex; align-items: center; gap: 6px; flex: none; flex-wrap: wrap; }
+.toolbar-right { margin-left: auto; }
 /* Compact every toolbar button so the row fits without wrapping. */
-.toolbar-right button { padding: 6px 10px; font-size: 12.5px; font-weight: 600; }
+.toolbar-left button, .toolbar-right button { padding: 6px 10px; font-size: 12.5px; font-weight: 600; }
 /* Refresh is icon-only to save space. */
-.toolbar-right .btn-icon { padding: 6px 9px; font-size: 15px; line-height: 1; }
+.toolbar-left .btn-icon { padding: 6px 9px; font-size: 15px; line-height: 1; }
 /* Buttons of the same purpose stay together; a thin rule separates groups. */
 .tb-group { display: inline-flex; gap: 6px; }
 .tb-sep { width: 1px; align-self: stretch; min-height: 22px; background: var(--border-strong); margin: 0 2px; }
@@ -586,7 +588,8 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .tp-map-row.tone-stop .tp-map-dot { background: var(--down); }
 .tp-map-row.tone-stop .tp-map-label { color: var(--down); }
 
-.tp-methods { display: grid; gap: 10px; margin-top: 14px; }
+/* Di modal lebar kartu metode berdampingan; menyempit sendiri jadi 1 kolom. */
+.tp-methods { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 10px; margin-top: 14px; }
 .tp-method {
   background: var(--surface-2); border: 1px solid var(--border);
   border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
@@ -597,13 +600,16 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .tp-trailing.triggered { border-left-color: var(--down); background: var(--down-soft); }
 
 .tp-targets { display: grid; gap: 6px; margin-top: 9px; }
+/* display:grid = judul, harga, persen, catatan selalu menumpuk vertikal;
+   tidak pernah berebut satu baris walau modal-nya sempit. */
 .tp-target {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-sm); padding: 8px 10px;
+  display: grid; gap: 2px;
 }
 .tp-target.main { border-color: var(--up); background: var(--up-soft); }
-.tp-target-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-.tp-target-label { font-weight: 800; font-size: 13px; }
+.tp-target-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tp-target-label { font-weight: 800; font-size: 13px; min-width: 0; }
 .tp-target-price { font-weight: 800; font-size: 14px; white-space: nowrap; }
 .tp-target-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
 .tp-target-meta .up { color: var(--up); font-weight: 700; }
@@ -634,8 +640,12 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 }
 .tp-plan-head {
   display: flex; align-items: baseline; justify-content: space-between;
-  gap: 10px; font-size: 13px;
+  gap: 10px; font-size: 13px; flex-wrap: wrap;
 }
+/* Baris "jual sekian lot di harga sekian" — instruksi konkretnya, bukan catatan. */
+.tp-plan-qty { margin-top: 4px; font-size: 12.5px; line-height: 1.5; }
+.tp-plan-qty .up { color: var(--up); font-weight: 700; }
+.tp-plan-qty .down { color: var(--down); font-weight: 700; }
 
 /* ---- take profit: tabs, kondisi, stop, screening --------------------------- */
 .tp-tabs { display: flex; gap: 6px; margin: 10px 0 12px; }

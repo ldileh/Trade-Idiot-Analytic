@@ -349,7 +349,8 @@ export default function App() {
               </button>
             </div>
             <div className="toolbar">
-              <div className="toolbar-right">
+              {/* Kiri: aksi grafik itu sendiri (perbarui, layar penuh). */}
+              <div className="toolbar-left">
                 <button
                   type="button"
                   className="btn-ghost btn-icon"
@@ -369,7 +370,9 @@ export default function App() {
                 >
                   <span aria-hidden>{maximized ? "🗗" : "⛶"}</span>
                 </button>
-                <span className="tb-sep" />
+              </div>
+              {/* Kanan: panel analisa & pengaturan. */}
+              <div className="toolbar-right">
                 {/* Grup Portofolio */}
                 <span className="tb-group">
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPortfolio(true)} title="Catat saham yang kamu miliki. Saat saham itu tampil di grafik, garis harga beli & untung/rugi ikut muncul.">
@@ -582,7 +585,6 @@ export default function App() {
       {/* Popup target take profit — di harga berapa untung diamankan, plus batas rugi */}
       <Modal
         open={showTakeProfit}
-        variant="drawer"
         title="🎯 Target Take Profit"
         subtitle="Empat cara menentukan harga jual yang punya dasar riset (ATR, Risk/Reward, resistance, trailing stop) — app memilihkan yang paling cocok untuk kondisi emiten ini, lengkap dengan saran batas rugi. Bahan bantu keputusan, BUKAN ajakan jual."
         onClose={() => setShowTakeProfit(false)}
