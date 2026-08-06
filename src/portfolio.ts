@@ -1,6 +1,8 @@
 // Portofolio pribadi: daftar saham yang dimiliki (kode, jumlah lembar, harga
 // beli rata-rata). Disimpan di localStorage — sama seperti favorit, tidak
 // butuh backend. Satu entri per kode saham; beli lagi = rata-rata tertimbang.
+import { isIDX } from "./format";
+
 export interface Holding {
   sym: string; // kode saham, uppercase (mis. "BBCA.JK", "AAPL")
   qty: number; // jumlah lembar
@@ -40,6 +42,17 @@ export function addHolding(list: Holding[], sym: string, qty: number, price: num
 // Untuk koreksi, beda dengan addHolding yang merata-ratakan pembelian baru.
 export function editHolding(list: Holding[], sym: string, qty: number, price: number): Holding[] {
   return list.map((h) => (h.sym === sym ? { sym, qty, price } : h));
+}
+
+// Bagi satu posisi jadi tiga porsi untuk rencana jual bertahap. IDX dibulatkan
+// ke lot penuh (bursa hanya menerima kelipatan 100 lembar); sisa pembulatan
+// masuk porsi terakhir. null = terlalu kecil untuk dibagi tiga.
+export function splitQty(qty: number, sym: string): [number, number, number] | null {
+  if (!isIDX(sym)) return qty > 0 ? [qty / 3, qty / 3, qty - 2 * (qty / 3)] : null;
+  const lots = Math.floor(qty / 100);
+  if (lots < 3) return null;
+  const a = Math.floor(lots / 3);
+  return [a * 100, a * 100, (lots - 2 * a) * 100];
 }
 
 export function removeHolding(list: Holding[], sym: string): Holding[] {
