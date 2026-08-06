@@ -17,6 +17,8 @@ import type {
   PricesResponse,
   Range,
   RRGResponse,
+  TakeProfitResponse,
+  TakeProfitScreenResponse,
 } from "../types";
 import { fundamentalsHeader, loadSettings, settingsHeaders } from "../settings";
 
@@ -123,6 +125,34 @@ export function getMomentum(
 ): Promise<MomentumResponse> {
   const q = new URLSearchParams({ ticker, interval });
   return request<MomentumResponse>(`/momentum?${q}`);
+}
+
+// Target take profit. `buyPrice` dari portofolio (kalau saham ini dimiliki) dan
+// `stopPrice` opsional dari user membuat hitungan R-multiple memakai risiko
+// nyata, bukan stop default 1×ATR.
+export function getTakeProfit(
+  ticker: string,
+  buyPrice?: number | null,
+  stopPrice?: number | null,
+  interval: Interval = "1d",
+): Promise<TakeProfitResponse> {
+  const q = new URLSearchParams({ ticker, interval });
+  if (buyPrice != null && buyPrice > 0) q.set("buy_price", String(buyPrice));
+  if (stopPrice != null && stopPrice > 0) q.set("stop_price", String(stopPrice));
+  return request<TakeProfitResponse>(`/takeprofit?${q}`);
+}
+
+// Peringkat seluruh portofolio: siapa yang paling perlu diamankan untungnya.
+// Format query "KODE:HARGA_BELI" — harga beli wajib agar untung/rugi terhitung.
+export function screenTakeProfit(
+  holdings: { sym: string; price: number }[],
+  interval: Interval = "1d",
+): Promise<TakeProfitScreenResponse> {
+  const q = new URLSearchParams({
+    holdings: holdings.map((h) => `${h.sym}:${h.price}`).join(","),
+    interval,
+  });
+  return request<TakeProfitScreenResponse>(`/takeprofit/screen?${q}`);
 }
 
 export function getFundamentals(ticker: string): Promise<FundamentalsResponse> {

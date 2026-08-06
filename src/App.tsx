@@ -15,6 +15,8 @@ import RRGPanel from "./components/RRGPanel";
 import OwnershipPanel from "./components/OwnershipPanel";
 import BandarmologyPanel from "./components/BandarmologyPanel";
 import PortfolioPanel, { PositionSummary } from "./components/PortfolioPanel";
+import TakeProfitPanel from "./components/TakeProfitPanel";
+import ReferencesPanel from "./components/ReferencesPanel";
 import TickerInput, { type TickerQuery } from "./components/TickerInput";
 import { addHolding, editHolding, loadHoldings, removeHolding, saveHoldings, type Holding } from "./portfolio";
 import { Card, Menu, Modal } from "./components/ui";
@@ -125,6 +127,8 @@ export default function App() {
   const [showBandar, setShowBandar] = useState(false);
   const [showFundamentals, setShowFundamentals] = useState(false);
   const [showPortfolio, setShowPortfolio] = useState(false);
+  const [showTakeProfit, setShowTakeProfit] = useState(false);
+  const [showReferences, setShowReferences] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showMarketMap, setShowMarketMap] = useState(false);
   const [maximized, setMaximized] = useState(false);
@@ -345,13 +349,6 @@ export default function App() {
               </button>
             </div>
             <div className="toolbar">
-              <div className="toolbar-left">
-                <span className="legend">
-                  <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
-                  <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
-                  <span className="dot"><span className="sq" style={{ background: "rgba(102,112,138,.45)" }} /> Batang bawah = <b>volume</b> (ramainya transaksi)</span>
-                </span>
-              </div>
               <div className="toolbar-right">
                 <button
                   type="button"
@@ -377,6 +374,9 @@ export default function App() {
                 <span className="tb-group">
                   <button type="button" className="btn-ghost btn-sm" onClick={() => setShowPortfolio(true)} title="Catat saham yang kamu miliki. Saat saham itu tampil di grafik, garis harga beli & untung/rugi ikut muncul.">
                     💼 Portofolio {holdings.length > 0 && <span className="count">{holdings.length}</span>}
+                  </button>
+                  <button type="button" className="btn-ghost btn-sm" onClick={() => setShowTakeProfit(true)} disabled={!hasData} title="Di harga berapa sebaiknya untung diamankan — beserta batas ruginya. Bisa juga menilai seluruh portofolio sekaligus.">
+                    🎯 Take Profit
                   </button>
                 </span>
                 <span className="tb-sep" />
@@ -435,6 +435,9 @@ export default function App() {
                       <button type="button" onClick={() => { setShowSettings(true); close(); }} title="Sumber Data (BYOK)">
                         ⚙️ Sumber Data
                       </button>
+                      <button type="button" onClick={() => { setShowReferences(true); close(); }} title="Metode yang dipakai app ini & dasar risetnya">
+                        🎓 Dasar Ilmiah
+                      </button>
                       <button type="button" onClick={() => { checkForUpdate(); close(); }} title="Cek versi terbaru aplikasi">
                         ⬆️ Cek pembaruan
                       </button>
@@ -461,9 +464,17 @@ export default function App() {
                 ))}
               </div>
             )}
-            <p className="muted" style={{ fontSize: 12, marginTop: 8, marginBottom: 0 }}>
-              Tarik/geser grafik untuk menjelajah, scroll untuk zoom.
-            </p>
+            {/* Keterangan warna + cara navigasi: dua-duanya bacaan sekali lalu
+                jarang dilihat lagi, jadi ditaruh di kaki grafik — bukan di
+                toolbar atas yang harus tetap ringkas untuk tombol aksi. */}
+            <div className="chart-foot">
+              <span className="legend">
+                <span className="dot"><span className="sq" style={{ background: "var(--up)" }} /> Lilin hijau = harga <b>naik</b></span>
+                <span className="dot"><span className="sq" style={{ background: "var(--down)" }} /> Lilin merah = harga <b>turun</b></span>
+                <span className="dot"><span className="sq" style={{ background: "rgba(102,112,138,.45)" }} /> Batang bawah = <b>volume</b> (ramainya transaksi)</span>
+              </span>
+              <span className="chart-foot-hint">Tarik/geser grafik untuk menjelajah, scroll untuk zoom.</span>
+            </div>
           </Card>
         </section>
       </div>
@@ -568,6 +579,23 @@ export default function App() {
         <BandarmologyPanel open={showBandar} ticker={query.ticker} interval={query.interval} />
       </Modal>
 
+      {/* Popup target take profit — di harga berapa untung diamankan, plus batas rugi */}
+      <Modal
+        open={showTakeProfit}
+        variant="drawer"
+        title="🎯 Target Take Profit"
+        subtitle="Empat cara menentukan harga jual yang punya dasar riset (ATR, Risk/Reward, resistance, trailing stop) — app memilihkan yang paling cocok untuk kondisi emiten ini, lengkap dengan saran batas rugi. Bahan bantu keputusan, BUKAN ajakan jual."
+        onClose={() => setShowTakeProfit(false)}
+      >
+        <TakeProfitPanel
+          open={showTakeProfit}
+          ticker={query.ticker}
+          buyPrice={holding?.price ?? null}
+          holdings={holdings}
+          onOpenReferences={() => setShowReferences(true)}
+        />
+      </Modal>
+
       {/* Popup portofolio — catat kepemilikan; klik posisi untuk membukanya di grafik */}
       <Modal
         open={showPortfolio}
@@ -631,6 +659,19 @@ export default function App() {
             setShowMarketMap(false);
           }}
         />
+      </Modal>
+
+      {/* Popup dasar ilmiah — katalog metode yang dipakai app + sumber risetnya.
+          Dirender PALING AKHIR: semua modal berbagi z-index yang sama, jadi urutan
+          DOM yang menentukan. Ini harus bisa dibuka dari atas drawer lain (mis.
+          tombol "sumber riset lengkap" di panel Take Profit). */}
+      <Modal
+        open={showReferences}
+        title="🎓 Dasar Ilmiah"
+        subtitle="Semua metode yang dipakai aplikasi ini, apa temuan risetnya, dan seberapa kuat dukungan ilmiahnya — termasuk yang buktinya lemah."
+        onClose={() => setShowReferences(false)}
+      >
+        <ReferencesPanel />
       </Modal>
     </div>
   );

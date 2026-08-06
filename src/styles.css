@@ -371,7 +371,7 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .chart-tab-add:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ---- chart legend ---------------------------------------------------------- */
-.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; margin-bottom: 10px; font-size: 12.5px; color: var(--muted); }
+.legend { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; font-size: 12.5px; color: var(--muted); }
 .legend .dot { display: inline-flex; align-items: center; gap: 6px; }
 .legend .sq { width: 12px; height: 12px; border-radius: 3px; }
 .chart-wrap { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
@@ -462,8 +462,9 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .app-version { font-size: 12px; font-weight: 600; color: var(--muted); vertical-align: middle; }
 
 /* ---- chart toolbar --------------------------------------------------------- */
-.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-.toolbar-left { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+/* Sejak legenda pindah ke .chart-foot, toolbar hanya berisi tombol aksi — rata
+   kiri, tidak lagi space-between antara dua sisi. */
+.toolbar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .toolbar-right { display: flex; align-items: center; gap: 6px; flex: none; flex-wrap: wrap; }
 /* Compact every toolbar button so the row fits without wrapping. */
 .toolbar-right button { padding: 6px 10px; font-size: 12.5px; font-weight: 600; }
@@ -492,6 +493,17 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 
 /* Active indicators shown below the chart instead of crowding the toolbar. */
 .active-indicators { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+/* Kaki grafik: keterangan warna + cara navigasi. Keduanya dibaca sekali di awal,
+   jadi diletakkan di bawah agar toolbar atas tetap lapang untuk tombol aksi. */
+.chart-foot {
+  display: flex; align-items: center; gap: 8px 16px; flex-wrap: wrap;
+  margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--border);
+}
+.chart-foot-hint { font-size: 12px; color: var(--faint); margin-left: auto; }
+/* Saat sempit, hint pindah ke baris sendiri (margin-left:auto tidak lagi relevan). */
+@media (max-width: 700px) {
+  .chart-foot-hint { margin-left: 0; }
+}
 .toolbar-right .count {
   display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px;
   margin-left: 4px; background: var(--accent); color: #fff; border-radius: 999px; font-size: 11px; font-weight: 800;
@@ -537,3 +549,228 @@ button:disabled { opacity: .55; cursor: not-allowed; }
 .how-title { font-weight: 800; font-size: 13.5px; margin-bottom: 6px; }
 .how-box ul { margin: 0; padding-left: 18px; }
 .how-box li { font-size: 13px; color: var(--text); margin: 3px 0; line-height: 1.5; }
+
+/* ---- take profit targets --------------------------------------------------- */
+.tp-headline {
+  background: var(--accent-soft); border: 1px solid #dcd9fb;
+  border-radius: var(--radius-sm); padding: 11px 14px;
+  font-size: 13.5px; font-weight: 700; line-height: 1.5; color: var(--text);
+}
+.tp-headline.warn { background: rgba(180, 83, 9, .10); border-color: rgba(180, 83, 9, .30); }
+
+/* Peta harga: satu baris per level, titik diposisikan pada sumbu bersama, jadi
+   jarak antar target terbaca sekilas tanpa membandingkan angka satu per satu. */
+.tp-map { margin-top: 12px; display: grid; gap: 5px; }
+.tp-map-row {
+  display: grid; grid-template-columns: minmax(96px, 1.1fr) minmax(70px, 2fr) auto;
+  align-items: center; gap: 10px; font-size: 12px;
+}
+.tp-map-label { color: var(--muted); font-weight: 700; }
+.tp-map-track {
+  position: relative; height: 6px; border-radius: 999px;
+  background: var(--surface-2); border: 1px solid var(--border);
+}
+.tp-map-dot {
+  position: absolute; top: 50%; width: 11px; height: 11px; border-radius: 50%;
+  transform: translate(-50%, -50%); background: var(--border-strong);
+  border: 2px solid var(--surface);
+}
+.tp-map-price { font-weight: 800; font-size: 12.5px; white-space: nowrap; }
+.tp-map-diff { color: var(--muted); font-weight: 600; font-size: 11px; margin-left: 5px; }
+.tp-map-row.tone-target .tp-map-dot { background: var(--up); }
+.tp-map-row.tone-target .tp-map-label { color: var(--up); }
+.tp-map-row.tone-now .tp-map-dot { background: var(--accent); width: 13px; height: 13px; }
+.tp-map-row.tone-now .tp-map-label,
+.tp-map-row.tone-now .tp-map-price { color: var(--accent); }
+.tp-map-row.tone-entry .tp-map-dot { background: var(--faint); }
+.tp-map-row.tone-stop .tp-map-dot { background: var(--down); }
+.tp-map-row.tone-stop .tp-map-label { color: var(--down); }
+
+.tp-methods { display: grid; gap: 10px; margin-top: 14px; }
+.tp-method {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: var(--radius-sm);
+  padding: 11px 13px;
+}
+.tp-method.empty { border-left-color: var(--border-strong); }
+.tp-trailing { border-left-color: var(--warn); }
+.tp-trailing.triggered { border-left-color: var(--down); background: var(--down-soft); }
+
+.tp-targets { display: grid; gap: 6px; margin-top: 9px; }
+.tp-target {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+}
+.tp-target.main { border-color: var(--up); background: var(--up-soft); }
+.tp-target-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.tp-target-label { font-weight: 800; font-size: 13px; }
+.tp-target-price { font-weight: 800; font-size: 14px; white-space: nowrap; }
+.tp-target-meta { font-size: 11.5px; color: var(--muted); margin-top: 2px; }
+.tp-target-meta .up { color: var(--up); font-weight: 700; }
+.tp-target-meta .down { color: var(--down); font-weight: 700; }
+.tp-badge {
+  margin-left: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; padding: 2px 6px; border-radius: 999px;
+  background: var(--up); color: #fff;
+}
+
+.tp-why { margin-top: 8px; }
+.tp-why summary {
+  cursor: pointer; font-size: 12px; font-weight: 700; color: var(--accent);
+  list-style: none;
+}
+.tp-why summary::-webkit-details-marker { display: none; }
+.tp-why summary::before { content: "▸ "; }
+.tp-why[open] summary::before { content: "▾ "; }
+.tp-ref {
+  margin-top: 6px; font-size: 11px; color: var(--faint);
+  font-style: italic; line-height: 1.45;
+}
+
+.tp-plan { list-style: none; margin: 0; padding: 0; display: grid; gap: 7px; counter-reset: tp; }
+.tp-plan li {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 9px 12px;
+}
+.tp-plan-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; font-size: 13px;
+}
+
+/* ---- take profit: tabs, kondisi, stop, screening --------------------------- */
+.tp-tabs { display: flex; gap: 6px; margin: 10px 0 12px; }
+.tp-tabs button {
+  flex: 1 1 0; padding: 8px 10px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--surface);
+  font: inherit; font-size: 13px; font-weight: 700; color: var(--muted);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+}
+.tp-tabs button:hover { border-color: var(--accent); color: var(--accent); }
+.tp-tabs button.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.tp-tabs .count {
+  background: rgba(255, 255, 255, .25); border-radius: 999px;
+  padding: 1px 7px; font-size: 11px; font-weight: 800;
+}
+.tp-tabs button:not(.active) .count { background: var(--accent-soft); color: var(--accent); }
+
+/* Kartu "metode paling cocok" — jawaban utama, jadi paling menonjol. */
+.tp-pick {
+  margin-top: 12px; padding: 12px 14px;
+  border: 1px solid var(--accent); border-radius: var(--radius-sm);
+  background: linear-gradient(180deg, var(--accent-soft), var(--surface));
+}
+.tp-pick-kicker {
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .05em; color: var(--accent);
+}
+.tp-pick-title { font-size: 15px; font-weight: 800; margin-top: 3px; }
+.tp-cond { display: flex; flex-direction: column; gap: 4px; margin-top: 9px; }
+.tp-cond-chip {
+  font-size: 12px; color: var(--text); background: var(--surface);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 5px 9px; line-height: 1.45;
+}
+
+.tp-stop { border-left-color: var(--down); margin-top: 12px; }
+.tp-stop-target { border-color: var(--down); background: var(--down-soft); }
+.tp-risk {
+  margin-top: 7px; font-size: 12px; line-height: 1.5;
+  background: rgba(180, 83, 9, .10); border: 1px solid rgba(180, 83, 9, .25);
+  border-radius: var(--radius-sm); padding: 8px 10px; color: var(--text);
+}
+.tp-method.picked { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-soft); }
+.tp-method.picked .tp-badge { background: var(--accent); }
+
+/* Peringkat portofolio */
+.tp-screen { display: grid; gap: 8px; margin-top: 10px; }
+.tp-cand {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong); border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.tp-cand.u-high { border-left-color: var(--down); background: var(--down-soft); }
+.tp-cand.u-medium { border-left-color: var(--warn); }
+.tp-cand.u-low { border-left-color: var(--up); }
+.tp-cand-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; flex-wrap: wrap; }
+.tp-cand-sym { font-weight: 800; font-size: 15px; }
+.tp-cand-label { font-weight: 800; font-size: 12.5px; }
+.tp-cand-meta { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.tp-cand-meta .up { color: var(--up); font-weight: 700; }
+.tp-cand-meta .down { color: var(--down); font-weight: 700; }
+.tp-cand-reasons { margin: 6px 0 0; padding-left: 18px; }
+.tp-cand-reasons li { font-size: 12px; color: var(--text); line-height: 1.5; margin: 2px 0; }
+
+/* ---- referensi / dasar ilmiah ---------------------------------------------- */
+/* Warna per tingkat bukti: hijau = paper ber-review, biru = standar industri,
+   kuning = bukti campuran, abu = aturan praktis app ini. */
+.ref-card.ev-peer_reviewed { --ev: var(--up); --ev-soft: var(--up-soft); }
+.ref-card.ev-established { --ev: var(--accent); --ev-soft: var(--accent-soft); }
+.ref-card.ev-mixed { --ev: var(--warn); --ev-soft: rgba(180, 83, 9, .12); }
+.ref-card.ev-heuristic { --ev: var(--faint); --ev-soft: var(--surface-2); }
+
+.ref-legend { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 12px; }
+.ref-chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 11px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border); background: var(--surface);
+  font: inherit; font-size: 12px; font-weight: 700; color: var(--muted);
+}
+.ref-chip:hover { border-color: var(--accent); color: var(--accent); }
+.ref-chip .count {
+  background: var(--surface-2); color: var(--muted);
+  border-radius: 999px; padding: 1px 7px; font-size: 11px; font-weight: 800;
+}
+.ref-chip.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+.ref-chip.active .count { background: rgba(255, 255, 255, .25); color: #fff; }
+.ref-chip.ev-peer_reviewed.active { background: var(--up); border-color: var(--up); }
+.ref-chip.ev-mixed.active { background: var(--warn); border-color: var(--warn); }
+.ref-chip.ev-heuristic.active { background: var(--faint); border-color: var(--faint); }
+.ref-legend-note {
+  margin-top: 8px; font-size: 12px; line-height: 1.5; color: var(--text);
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 11px;
+}
+
+.ref-group-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; border-bottom: 1px solid var(--border); padding-bottom: 5px;
+}
+.ref-group-title { font-weight: 800; font-size: 14.5px; }
+.ref-list { display: grid; gap: 9px; margin-top: 9px; }
+
+.ref-card {
+  background: var(--surface-2); border: 1px solid var(--border);
+  border-left: 3px solid var(--ev); border-radius: var(--radius-sm);
+  padding: 11px 13px;
+}
+.ref-card-head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 10px; flex-wrap: wrap;
+}
+.ref-title { font-weight: 800; font-size: 13.5px; }
+.ref-badge {
+  font-size: 10.5px; font-weight: 800; white-space: nowrap;
+  padding: 3px 8px; border-radius: 999px;
+  background: var(--ev-soft); color: var(--ev); border: 1px solid var(--ev);
+}
+.ref-tech { font-size: 11.5px; color: var(--muted); margin-top: 3px; font-style: italic; }
+.ref-where { font-style: normal; font-weight: 700; }
+.ref-what { font-size: 12.5px; line-height: 1.5; margin-top: 6px; }
+.ref-finding {
+  margin-top: 7px; font-size: 12.5px; line-height: 1.55;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-sm); padding: 8px 10px;
+}
+.ref-finding-k {
+  display: block; font-size: 10.5px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .04em; color: var(--ev); margin-bottom: 3px;
+}
+.ref-caveat {
+  margin-top: 6px; font-size: 12px; line-height: 1.5;
+  background: rgba(180, 83, 9, .10); border: 1px solid rgba(180, 83, 9, .25);
+  border-radius: var(--radius-sm); padding: 7px 10px;
+}
+.ref-cites { margin: 8px 0 0; padding-left: 17px; }
+.ref-cites li { font-size: 11.5px; color: var(--muted); line-height: 1.5; margin: 3px 0; }
+.ref-cites a { color: var(--accent); text-decoration: none; }
+.ref-cites a:hover { text-decoration: underline; }

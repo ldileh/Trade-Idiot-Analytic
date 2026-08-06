@@ -17,6 +17,7 @@ from app.routers import (
     patterns,
     prices,
     rrg,
+    takeprofit,
 )
 
 
@@ -53,5 +54,6 @@ def create_app() -> FastAPI:
     app.include_router(correlation.router)
     app.include_router(news.router)
     app.include_router(bandarmology.router)
+    app.include_router(takeprofit.router)
 
     return app

@@ -237,6 +237,120 @@ export interface MomentumResponse {
   week52?: Week52Position | null;
 }
 
+// --- Target Take Profit ---------------------------------------------------
+// Mirror of backend/app/models.py. Semua angka adalah HARGA hasil hitungan dari
+// data, bukan sinyal jual.
+
+export interface TakeProfitTarget {
+  label: string; // "2× ATR" | "2R" | "Puncak 52 minggu"
+  price: number;
+  pct_from_now: number;
+  pct_from_entry: number | null; // null = user tidak punya posisi
+  emphasis: boolean; // target utama yang disorot
+  note?: string | null;
+}
+
+export interface TakeProfitMethod {
+  key: "atr" | "rr" | "resistance";
+  label: string;
+  summary: string;
+  why: string;
+  reference: string;
+  targets: TakeProfitTarget[];
+  enough_data: boolean;
+}
+
+export interface TrailingStop {
+  enough_data: boolean;
+  triggered: boolean; // level sudah di atas harga = tren patah, bukan target
+  label: string;
+  price: number | null;
+  highest_high: number | null;
+  atr: number | null;
+  pct_from_now: number | null;
+  summary: string;
+  why: string;
+  reference: string;
+}
+
+export interface ScaleOutStep {
+  portion: string;
+  price: number | null;
+  pct_from_now: number | null;
+  note: string;
+}
+
+export type TakeProfitTrend = "uptrend" | "downtrend" | "sideways_up" | "sideways_down" | "unknown";
+export type TakeProfitVol = "calm" | "normal" | "wild" | "unknown";
+// Metode yang disarankan; "stop" = tren turun, fokus batasi rugi.
+export type TakeProfitPick = "atr" | "rr" | "resistance" | "trailing" | "stop";
+
+export interface TakeProfitCondition {
+  trend: TakeProfitTrend;
+  trend_text: string;
+  vol: TakeProfitVol;
+  vol_text: string;
+  near_high: boolean;
+  at_new_high: boolean;
+  recommended: TakeProfitPick;
+  recommended_label: string;
+  recommended_why: string;
+  recommended_reference: string;
+}
+
+export interface StopAdvice {
+  enough_data: boolean;
+  price: number | null;
+  pct_from_now: number | null;
+  pct_from_entry: number | null;
+  method: string;
+  summary: string;
+  why: string;
+  reference: string;
+  risk_note: string;
+}
+
+export interface TakeProfitCandidate {
+  sym: string;
+  score: number;
+  urgency: "high" | "medium" | "low";
+  label: string;
+  pnl_pct: number | null;
+  price: number;
+  reasons: string[];
+  recommended: string;
+  recommended_label: string;
+  target: number | null;
+  target_label: string | null;
+  stop: number | null;
+  trend: string;
+}
+
+export interface TakeProfitScreenResponse {
+  candidates: TakeProfitCandidate[];
+  skipped: string[];
+}
+
+export interface TakeProfitResponse {
+  ticker: string;
+  price: number;
+  entry: number;
+  has_position: boolean;
+  underwater: boolean; // rugi > 2×ATR → target dihitung dari harga sekarang
+  ahead: boolean; // untung > 2×ATR → target juga dihitung dari harga sekarang
+  cost: number | null; // harga beli asli
+  atr: number | null;
+  atr_pct: number | null;
+  stop: number | null;
+  condition: TakeProfitCondition;
+  stop_advice: StopAdvice;
+  methods: TakeProfitMethod[];
+  trailing: TrailingStop;
+  plan: ScaleOutStep[];
+  headline: string;
+  disclaimer: string;
+}
+
 export interface NewsItem {
   title: string;
   publisher: string;
