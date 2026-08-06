@@ -264,6 +264,137 @@ class MomentumResponse(BaseModel):
     week52: Week52Position | None = None
 
 
+class TakeProfitTarget(BaseModel):
+    """Satu level harga target di dalam sebuah metode take profit."""
+
+    label: str  # "2× ATR", "2R", "Puncak 52 minggu", ...
+    price: float
+    pct_from_now: float  # jarak dari harga sekarang, dalam %
+    pct_from_entry: float | None = None  # dari harga beli user, None bila tak punya posisi
+    emphasis: bool = False  # target "utama" yang disorot di UI
+    note: str | None = None
+
+
+class TakeProfitMethod(BaseModel):
+    """Satu metode penentuan target, lengkap dengan dasar risetnya."""
+
+    key: Literal["atr", "rr", "resistance"]
+    label: str
+    summary: str
+    why: str
+    reference: str
+    targets: list[TakeProfitTarget]
+    enough_data: bool
+
+
+class TrailingStop(BaseModel):
+    """Chandelier Exit — batas jual yang ikut naik mengikuti puncak harga."""
+
+    enough_data: bool
+    # Level trailing sudah berada di atas harga sekarang = stop tersentuh; UI
+    # harus membacanya sebagai "tren patah", bukan sebagai target jual.
+    triggered: bool = False
+    label: str
+    price: float | None
+    highest_high: float | None
+    atr: float | None
+    pct_from_now: float | None
+    summary: str
+    why: str
+    reference: str
+
+
+class ScaleOutStep(BaseModel):
+    """Satu tahap rencana jual bertahap (scaling out)."""
+
+    portion: str  # "1/3 pertama" | "1/3 kedua" | "1/3 sisa"
+    price: float | None
+    pct_from_now: float | None
+    note: str
+
+
+class TakeProfitCondition(BaseModel):
+    """Diagnosa kondisi emiten + metode take profit yang paling cocok untuknya."""
+
+    trend: Literal["uptrend", "downtrend", "sideways_up", "sideways_down", "unknown"]
+    trend_text: str
+    vol: Literal["calm", "normal", "wild", "unknown"]
+    vol_text: str
+    near_high: bool
+    at_new_high: bool
+    # Metode yang disarankan: salah satu key metode, "trailing", atau "stop"
+    # (tren turun → fokus batasi rugi, bukan pasang target).
+    recommended: Literal["atr", "rr", "resistance", "trailing", "stop"]
+    recommended_label: str
+    recommended_why: str
+    recommended_reference: str
+
+
+class StopAdvice(BaseModel):
+    """Saran batas rugi yang menyesuaikan tren & volatilitas emiten."""
+
+    enough_data: bool
+    price: float | None
+    pct_from_now: float | None
+    pct_from_entry: float | None
+    method: str
+    summary: str
+    why: str
+    reference: str
+    risk_note: str  # konsekuensi position sizing dari lebar stop
+
+
+class TakeProfitResponse(BaseModel):
+    ticker: str
+    price: float  # harga terakhir
+    entry: float  # dasar hitungan: harga beli user, atau harga sekarang
+    has_position: bool
+    # Rugi > 2×ATR dari harga beli: target dihitung ulang dari harga sekarang
+    # agar tidak berubah jadi angka "menunggu balik modal".
+    underwater: bool = False
+    # Kebalikannya — untung > 2×ATR: target dari harga beli sudah terlewati,
+    # jadi juga dihitung ulang dari harga sekarang.
+    ahead: bool = False
+    cost: float | None = None  # harga beli asli (basis pelaporan % dari modal)
+    atr: float | None
+    atr_pct: float | None
+    stop: float | None  # batas rugi yang dipakai untuk hitungan R
+    condition: TakeProfitCondition
+    stop_advice: StopAdvice
+    methods: list[TakeProfitMethod]
+    trailing: TrailingStop
+    plan: list[ScaleOutStep]
+    headline: str
+    disclaimer: str
+
+
+class TakeProfitCandidate(BaseModel):
+    """Satu posisi portofolio yang dinilai urgensi take profit-nya."""
+
+    sym: str
+    score: float
+    urgency: Literal["high", "medium", "low"]
+    label: str
+    pnl_pct: float | None
+    price: float
+    reasons: list[str]
+    recommended: str
+    recommended_label: str
+    target: float | None
+    target_label: str | None
+    stop: float | None
+    trend: str
+
+
+class TakeProfitScreenResponse(BaseModel):
+    """Peringkat kandidat take profit di seluruh portofolio."""
+
+    candidates: list[TakeProfitCandidate]
+    # Kode yang gagal dianalisa (data tidak tersedia) — dilaporkan agar user
+    # tahu portofolionya tidak dinilai sebagian tanpa penjelasan.
+    skipped: list[str]
+
+
 class NewsItem(BaseModel):
     """One recent headline for a ticker with a crude per-headline sentiment."""
 

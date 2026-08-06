@@ -3,6 +3,12 @@
 Sumber riset, data, dan dokumentasi yang mendasari [PLAN.md](PLAN.md). Satu baris konteks
 per sumber. Aturan main: hanya API resmi/legal (lihat konvensi di [AGENTS.md](AGENTS.md) §8).
 
+> **Versi untuk user ada di dalam app**: menu ⚙️ → **🎓 Dasar Ilmiah**. Isinya dari
+> [`src/references.ts`](src/references.ts) — katalog tiap metode yang diimplementasi beserta
+> temuan risetnya, ditandai per tingkat bukti (jurnal ber-review / standar industri / bukti
+> campuran / heuristik app ini). **Saat menambah metode baru ke backend, tambahkan entrinya
+> di file itu juga**, supaya klaim di UI tidak melenceng dari yang benar-benar dihitung.
+
 ---
 
 ## Skor fundamental
@@ -27,12 +33,37 @@ per sumber. Aturan main: hanya API resmi/legal (lihat konvensi di [AGENTS.md](AG
   out-of-sample sejak 1990-an; alasan caveat pada Golden Cross.
   https://onlinelibrary.wiley.com/doi/10.1111/0022-1082.00163
 
+## Take profit & manajemen risiko
+
+Dipakai oleh `services/takeprofit.py` (endpoint `/takeprofit` & `/takeprofit/screen`).
+
+- **Wilder (1978), "New Concepts in Technical Trading Systems"** — asal ATR (Average True
+  Range); dasar target & stop loss yang jaraknya proporsional dengan volatilitas asli tiap
+  saham, bukan persentase bulat seragam. Ringkasan: [Investopedia ATR](https://www.investopedia.com/terms/a/atr.asp)
+- **Tharp (1998), "Trade Your Way to Financial Freedom"** — kerangka R-multiple: target
+  sebagai kelipatan jarak risiko (entry→stop), plus position sizing 1–2% modal per posisi.
+- **George & Hwang (2004), "The 52-Week High and Momentum Investing", Journal of Finance
+  59(5):2145-2176** — puncak 52 minggu sebagai jangkar harga; dipakai dua arah di app ini:
+  sebagai level target resistance, DAN sebagai alasan menurunkan urgensi jual saat posisi
+  masih tren naik di dekat puncak.
+  https://onlinelibrary.wiley.com/doi/10.1111/j.1540-6261.2004.00695.x
+- **Le Beau, Chuck — Chandelier Exit** (`highest_high(22) − 3×ATR22`) — trailing stop yang
+  hanya bergerak naik; dasar strategi "biarkan untung berjalan".
+  https://chartschool.stockcharts.com/table-of-contents/technical-indicators-and-overlays/technical-indicators/chandelier-exit
+- **Shefrin & Statman (1985), "The Disposition to Sell Winners Too Early and Ride Losers
+  Too Long", Journal of Finance 40(3)** — disposition effect; alasan app menolak
+  memproyeksikan target dari harga beli saat posisi rugi dalam (agar tidak jadi angka
+  "menunggu balik modal").
+  https://onlinelibrary.wiley.com/doi/10.1111/j.1540-6261.1985.tb05002.x
+- Jegadeesh & Titman (1993) — lihat bagian Momentum di atas; dipakai sebagai alasan
+  memilih trailing stop dibanding target tetap saat tren masih kuat.
+
 ## RRG (Relative Rotation Graph)
 
 - Konsep JdK RS-Ratio / RS-Momentum oleh Julius de Kempenaer:
   https://www.relativerotationgraphs.com/
-- StockCharts ChartSchool, penjelasan kuadran Leading/Weakening/Lagging/Improving:
-  https://school.stockcharts.com/doku.php?id=chart_analysis:rrg_charts
+  (StockCharts memindahkan ChartSchool ke domain `chartschool.stockcharts.com`; halaman RRG
+  lamanya sudah tidak ada, jadi situs resmi di atas dipakai sebagai sumber utama.)
 
 ## Sumber data
 
